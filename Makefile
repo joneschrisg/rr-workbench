@@ -17,12 +17,16 @@ clean:
 	rm -rf trace_*
 
 
-# Record the firefox mochitest suite.
-.PHONY: record-mochitests
-record-mochitests:
+# Record firefox on its own.
+.PHONY: record-firefox
+record-firefox:
 #	$(RR) --record $(FF) -no-remote -P garbage
 	$(RR) --record --filter_lib=$(LIB) $(FF) -no-remote -P garbage
 
+
+# Record firefox running the mochitest suite.
+.PHONY: record-mochitests
+record-mochitests:
 # rm -f $LOG
 # python  $MOCHITEST_DIR/runtests.py --autorun --close-when-done \
 #     --console-level=INFO --log-file=$LOG --file-level=INFO \
