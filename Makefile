@@ -7,11 +7,13 @@ FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/
 OBJDIR = $(RR_DIR)/obj
 LOG = $(FF_DIR)/mochitest.log
 MOCHITEST_DIR = $(FF_DIR)/mochitest
+XPCSHELL_DIR = $(FF_DIR)/xpcshell
 
 RR = "$(OBJDIR)/bin/rr"
 LIB = "$(OBJDIR)/lib/librr_wrap_syscalls.so"
 
 FF = "$(FF_DIR)/firefox/firefox"
+XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
 RECORD = "--record" #--filter_lib=$(LIB)
 
@@ -68,6 +70,17 @@ record-mochitests:
 	fi
 
 
+.PHONY: record-bug-845190
+help::
+	@echo "  make record-bug-845190"
+	@echo "    Run the xpcshell test that's triggering this top orange."
+record-bug-845190:
+	python $(XPCSHELL_DIR)/runxpcshelltests.py \
+		--debugger=$(RR) --debugger-args=$(RECORD) \
+		--test-path=test_645970.js \
+		--xre-path=$(FF_DIR)/firefox \
+		$(XPCSHELL) \
+		$(XPCSHELL_DIR)/tests/toolkit/components/search/tests/xpcshell
 
 
 .PHONY: update-firefox
