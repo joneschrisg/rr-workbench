@@ -21,13 +21,19 @@ XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
 RECORD = "--record" #--filter_lib=$(LIB)
 
+DEBUGGER ?= --debugger=$(RR) --debugger-args=$(RECORD)
+
 ifdef TEST_PATH
 TEST_PATH_ARG := --test-path="$(TEST_PATH)"
 endif
 
 .PHONY: help
 help::
-	@echo "Available targets are documented below."
+	@echo "Available targets are documented below.  Common options:"
+	@echo "  make DEBUGGER='[--debugger=program [--debugger-args=args]]' ..."
+	@echo "    Use a test 'debugger' other than |rr --record|, which"
+	@echo "    is the default."
+	@echo
 
 
 .PHONY: clean
@@ -48,7 +54,7 @@ record-firefox:
 
 .PHONY: record-mochitests
 help::
-	@echo "  make record-mochitests [TEST_PATH=dir]"
+	@echo "  make [TEST_PATH=dir] record-mochitests"
 	@echo "    Record firefox running the mochitest suite, optionally"
 	@echo "    just the TEST_PATH tests."
 record-mochitests:
@@ -58,7 +64,7 @@ record-mochitests:
 # directory.
 	rm -f $(WORKDIR)/$@.log
 	_RR_TRACE_DIR="$(WORKDIR)" python "$(MOCHITEST_DIR)/runtests.py" \
-		--debugger=$(RR) --debugger-args=$(RECORD) \
+		$(DEBUGGER) \
 		--appname=$(FF) \
 		--utility-path="$(FF_DIR)/bin" \
 		--extra-profile-file="$(FF_DIR)/bin/plugins" \
@@ -80,7 +86,7 @@ help::
 	@echo "    Run the xpcshell test that's triggering this top orange."
 record-bug-845190:
 	_RR_TRACE_DIR="$(WORKDIR)" python $(XPCSHELL_DIR)/runxpcshelltests.py \
-		--debugger=$(RR) --debugger-args=$(RECORD) \
+		$(DEBUGGER) \
 		--test-path=test_645970.js \
 		--xre-path=$(FF_DIR)/firefox \
 		--verbose \
@@ -90,7 +96,7 @@ record-bug-845190:
 
 .PHONY: update-firefox
 help::
-	@echo "  make update-firefox [FF_URL=url]"
+	@echo "  make [FF_URL=url] update-firefox"
 	@echo "    Blow away the current firefox build and testsuite and"
 	@echo "    download the latest from FF_URL (defaulting to nightly"
 	@echo "    builds of trunk)."
