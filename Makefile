@@ -1,3 +1,5 @@
+WORKDIR = $(CURDIR)
+
 RR_DIR ?= ../rr
 FF_DIR ?= .ff
 FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/
@@ -21,6 +23,7 @@ endif
 help::
 	@echo "Available targets are documented below."
 
+
 .PHONY: clean
 help::
 	@echo "  make clean"
@@ -43,14 +46,27 @@ help::
 	@echo "    Record firefox running the mochitest suite, optionally"
 	@echo "    just the TEST_PATH tests."
 record-mochitests:
-	python "$(MOCHITEST_DIR)/runtests.py" \
+# The mochitest harness helpfully chdir()s to a tmp directory and then
+# blows it away when the test suite finishes.  This blows away our
+# recorded trace as well.  So explicitly save them to the workbench
+# directory.
+	rm -f $(WORKDIR)/$@.log
+	_RR_TRACE_DIR="$(WORKDIR)" python "$(MOCHITEST_DIR)/runtests.py" \
 		--debugger=$(RR) --debugger-args=$(RECORD) \
 		--appname=$(FF) \
 		--utility-path="$(FF_DIR)/bin" \
 		--extra-profile-file="$(FF_DIR)/bin/plugins" \
 		--certificate-path="$(FF_DIR)/certs" \
-		--autorun --close-when-done --console-level=INFO \
+		--autorun --close-when-done \
+		--console-level=INFO --log-file="$(WORKDIR)/$@.log" \
 		$(TEST_PATH_ARG)
+	@errors=`grep "TEST-UNEXPECTED-" $(WORKDIR)/$@.log` ;\
+	if test "$$errors" ; then \
+		echo "$@ failed:"; \
+		echo "$$errors"; \
+		exit 1; \
+	fi
+
 
 
 
