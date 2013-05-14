@@ -2,7 +2,11 @@ WORKDIR = $(CURDIR)
 
 RR_DIR ?= ../rr
 FF_DIR ?= .ff
-FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/
+# XXX: sigh, no debug nightly builds.  Nor symbolic links to "latest"
+# or something.  So this is an arbitrarily-chosen, healthy-looking
+# build from 2013/05/14.
+FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/tinderbox-builds/mozilla-central-linux-debug/1368477222/
+#FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/
 
 OBJDIR = $(RR_DIR)/obj
 LOG = $(FF_DIR)/mochitest.log
@@ -75,7 +79,7 @@ help::
 	@echo "  make record-bug-845190"
 	@echo "    Run the xpcshell test that's triggering this top orange."
 record-bug-845190:
-	python $(XPCSHELL_DIR)/runxpcshelltests.py \
+	_RR_TRACE_DIR="$(WORKDIR)" python $(XPCSHELL_DIR)/runxpcshelltests.py \
 		--debugger=$(RR) --debugger-args=$(RECORD) \
 		--test-path=test_645970.js \
 		--xre-path=$(FF_DIR)/firefox \
@@ -94,7 +98,7 @@ update-firefox:
 	mkdir $(FF_DIR)
 	cd $(FF_DIR) && \
 		wget -nd -r -l 1 \
-			-A 'firefox*linux-i686.tar.bz2,firefox*linux-i686*.zip' \
+			-A 'firefox*linux-i686.tar.bz2,firefox*linux-i686*.tests.zip' \
 			$(FF_URL) && \
 		tar jxf firefox-*.tar.bz2 && \
 		unzip -q firefox-*.zip
