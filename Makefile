@@ -83,6 +83,7 @@ record-bug-845190:
 		--debugger=$(RR) --debugger-args=$(RECORD) \
 		--test-path=test_645970.js \
 		--xre-path=$(FF_DIR)/firefox \
+		--verbose \
 		$(XPCSHELL) \
 		$(XPCSHELL_DIR)/tests/toolkit/components/search/tests/xpcshell
 
