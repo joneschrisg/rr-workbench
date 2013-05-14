@@ -19,10 +19,10 @@ are
 
     make clean
       Remove all trace directories.
-    make record-mochitests [TEST_PATH=dir]
+    make [TEST_PATH=dir] record-mochitests
       Record firefox running the mochitest suite, optionally
       just the TEST_PATH tests.
-    make update-firefox [FF_URL=url]
+    make [FF_URL=url] update-firefox
       Blow away the current firefox build and testsuite and
       download the latest from FF_URL (defaulting to nightly
       builds of trunk).
