@@ -11,6 +11,12 @@ LIB = "$(OBJDIR)/lib/librr_wrap_syscalls.so"
 
 FF = "$(FF_DIR)/firefox/firefox"
 
+RECORD = "--record" #--filter_lib=$(LIB)
+
+ifdef TEST_PATH
+TEST_PATH_ARG := --test-path="$(TEST_PATH)"
+endif
+
 # Remove all traces.
 .PHONY: clean
 clean:
@@ -20,28 +26,20 @@ clean:
 # Record firefox on its own.
 .PHONY: record-firefox
 record-firefox:
-#	$(RR) --record $(FF) -no-remote -P garbage
-	$(RR) --record --filter_lib=$(LIB) $(FF) -no-remote -P garbage
+	$(RR) $(RECORD) $(FF) -no-remote -P garbage
 
 
 # Record firefox running the mochitest suite.
 .PHONY: record-mochitests
 record-mochitests:
-# rm -f $LOG
-# python  $MOCHITEST_DIR/runtests.py --autorun --close-when-done \
-#     --console-level=INFO --log-file=$LOG --file-level=INFO \
-#     --testing-modules-dir=$ROOT/modules \
-#     --extra-profile-file=$ROOT/bin/plugins \
-#     $(SYMBOLS_PATH) $(TEST_PATH_ARG) $(EXTRA_TEST_ARGS)
-
-# $(call check_test_error_internal,"To rerun your failures please run 'make $@-rerun-failures'")
-#   @errors=`grep "TEST-UNEXPECTED-" $@.log` ;\
-#   if test "$$errors" ; then \
-# 	  echo "$@ failed:"; \
-# 	  echo "$$errors"; \
-#           $(if $(1),echo $(1)) \
-# 	  exit 1; \
-#   fi
+	python "$(MOCHITEST_DIR)/runtests.py" \
+		--debugger=$(RR) --debugger-args=$(RECORD) \
+		--appname=$(FF) \
+		--utility-path="$(FF_DIR)/bin" \
+		--extra-profile-file="$(FF_DIR)/bin/plugins" \
+		--certificate-path="$(FF_DIR)/certs" \
+		--autorun --close-when-done --console-level=INFO \
+		$(TEST_PATH_ARG)
 
 
 # Blow away the current firefox build and testsuite and download the
