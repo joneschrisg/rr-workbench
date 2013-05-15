@@ -19,9 +19,9 @@ LIB = "$(OBJDIR)/lib/librr_wrap_syscalls.so"
 FF = "$(FF_DIR)/firefox/firefox"
 XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
-RECORD = "--record" #--filter_lib=$(LIB)
+RECORD = --record --filter_lib=$(LIB)
 
-DBG ?= --debugger=$(RR) --debugger-args=$(RECORD)
+DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
 
 ifdef TEST_PATH
 TEST_PATH_ARG := --test-path="$(TEST_PATH)"
