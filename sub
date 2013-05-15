@@ -7,4 +7,5 @@
 # However, it exists only to change the process hierarchy, and
 # introduces no new semantics.
 
-"$@" &
+"$@"
+exit $?
