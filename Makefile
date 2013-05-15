@@ -109,3 +109,9 @@ update-firefox:
 			$(FF_URL) && \
 		tar jxf firefox-*.tar.bz2 && \
 		unzip -q firefox-*.zip
+
+CFLAGS = -g -O0 -m32 -pthread
+
+# XXX add me to rr tree?
+librrmon.so: rrmon.o
+	$(CC) $(CFLAGS) -shared -o $@ $<

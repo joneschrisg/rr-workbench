@@ -1,4 +1,6 @@
 *~
 .ff
 *.log
+*.o
+*.so
 trace_*
