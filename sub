@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Launch the provided command in a subprocess, doing absolutely
+# nothing else.
+#
+# This is a no-op wrapper invoked in the style of valgrind or gdb.
+# However, it exists only to change the process hierarchy, and
+# introduces no new semantics.
+
+"$@" &

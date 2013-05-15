@@ -21,7 +21,7 @@ XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
 RECORD = "--record" #--filter_lib=$(LIB)
 
-DEBUGGER ?= --debugger=$(RR) --debugger-args=$(RECORD)
+DBG ?= --debugger=$(RR) --debugger-args=$(RECORD)
 
 ifdef TEST_PATH
 TEST_PATH_ARG := --test-path="$(TEST_PATH)"
@@ -30,7 +30,7 @@ endif
 .PHONY: help
 help::
 	@echo "Available targets are documented below.  Common options:"
-	@echo "  make DEBUGGER='[--debugger=program [--debugger-args=args]]' ..."
+	@echo "  make DBG='[--debugger=program [--debugger-args=args]]' ..."
 	@echo "    Use a test 'debugger' other than |rr --record|, which"
 	@echo "    is the default."
 	@echo
@@ -64,7 +64,7 @@ record-mochitests:
 # directory.
 	rm -f $(WORKDIR)/$@.log
 	_RR_TRACE_DIR="$(WORKDIR)" python "$(MOCHITEST_DIR)/runtests.py" \
-		$(DEBUGGER) \
+		$(DBG) \
 		--appname=$(FF) \
 		--utility-path="$(FF_DIR)/bin" \
 		--extra-profile-file="$(FF_DIR)/bin/plugins" \
@@ -86,7 +86,7 @@ help::
 	@echo "    Run the xpcshell test that's triggering this top orange."
 record-bug-845190:
 	_RR_TRACE_DIR="$(WORKDIR)" python $(XPCSHELL_DIR)/runxpcshelltests.py \
-		$(DEBUGGER) \
+		$(DBG) \
 		--test-path=test_645970.js \
 		--xre-path=$(FF_DIR)/firefox \
 		--verbose \
