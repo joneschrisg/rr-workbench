@@ -14,18 +14,14 @@ MOCHITEST_DIR = $(FF_DIR)/mochitest
 XPCSHELL_DIR = $(FF_DIR)/xpcshell
 
 RR = "$(OBJDIR)/bin/rr"
-#LIB = "$(OBJDIR)/lib/librr_wrap_syscalls.so"
-LIB = /tmp/librr_wrap_syscalls.so
+LIB = $(OBJDIR)/lib/librr_wrap_syscalls.so
 
 FF = "$(FF_DIR)/firefox/firefox"
 XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
-RECORD = --record --filter_lib=$(LIB)
+RECORD = --record --filter_lib="$(abspath $(LIB))"
 
-DBG ?= --debugger=valgrind --debugger-args="$(RR) $(RECORD)"
-ifdef PRELOAD
-	DBG += ":$(PRELOAD)"
-endif
+DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
 
 ifdef TEST_PATH
 TEST_PATH_ARG := --test-path="$(TEST_PATH)"
@@ -45,7 +41,7 @@ help::
 	@echo "  make clean"
 	@echo "    Remove all trace directories."
 clean:
-	rm -rf trace_*
+	rm -rf trace_* *.o *.so
 
 
 .PHONY: record-firefox
