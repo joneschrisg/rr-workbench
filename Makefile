@@ -19,7 +19,7 @@ LIB = $(OBJDIR)/lib/librr_wrap_syscalls.so
 FF = "$(FF_DIR)/firefox/firefox"
 XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
-RECORD = --record --filter_lib="$(abspath $(LIB))"
+RECORD ?= --record --filter_lib="$(abspath $(LIB))"
 
 DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
 
@@ -27,12 +27,21 @@ ifdef TEST_PATH
 TEST_PATH_ARG := --test-path="$(TEST_PATH)"
 endif
 
+
+# Shortcut for what you're currently working on, to save typing
+default: record-bug-845190
+
+
 .PHONY: help
 help::
 	@echo "Available targets are documented below.  Common options:"
 	@echo "  make DBG='[--debugger=program [--debugger-args=args]]' ..."
 	@echo "    Use a test 'debugger' other than |rr --record|, which"
 	@echo "    is the default."
+	@echo "  --or--"
+	@echo "  make RECORD='recording-options' ..."
+	@echo "    Adjust the arguments for recording that are passed to rr,"
+	@echo "    without having to use the verbose DBG='' syntax above."
 	@echo
 
 
