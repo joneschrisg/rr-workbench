@@ -95,7 +95,7 @@ record-bug-845190:
 
 
 .PHONY: syscall-histogram
-.help::
+help::
 	@echo " make [TRACES=trace_dir...] syscall-histogram"
 	@echo "    Build a histogram of unfiltered syscalls in local traces."
 	@echo "    By default, all traces are counted.  Specify TRACES to"
