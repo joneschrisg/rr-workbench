@@ -1,0 +1,19 @@
+#!/bin/bash
+
+if [[ $# != 2 ]] ; then
+    cat >&2 <<EOF
+Usage:
+  `basename $0` trace-file syscall-num
+EOF
+    exit 1
+fi
+
+trace="$1/trace_0"
+syscallnum=$2
+
+if [[ ! -f $trace ]]; then
+    echo "Error: $trace isn't a file" >&2
+    exit 1
+fi
+
+awk '{print $4}' $trace | grep -e "^$syscallnum$" | wc -l
