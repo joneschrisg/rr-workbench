@@ -1,0 +1,47 @@
+#!/usr/bin/python
+
+import re, sys
+HEX_RX = r'[\da-fA-F]+'
+INT_RX = r'[\-]?\d+'
+#global_time thread_time tid reason entry/exit hw_interrupts page_faults adapted_rbc instructions eax ebx ecx edx esi edi ebp orig_eax esp eip eflags
+TRACE_EVENT_RX = re.compile(
+    r'^'+
+    r'\s+(?P<global_time>'+ INT_RX +r')\s+(?P<thread_time>'+ INT_RX +r')'+
+    r'\s+(?P<tid>'+ INT_RX +r')\s+(?P<reason>'+ INT_RX +r'[\-]?\d+)')
+
+TRACE_NAME = 'trace_0'
+
+def make_syscall_histogram(inf, hist={}):
+    for line in inf:
+        m = TRACE_EVENT_RX.match(line)
+        if not m:
+            continue
+
+        syscall = int(m.group('reason'))
+        if syscall < 0:
+            continue
+
+        c = hist.get(syscall, 0)
+        c += 1
+        hist[syscall] = c
+
+    return hist
+
+def print_histogram(hist, outf=sys.stdout):
+    print>>outf, 'syscall\tcount'
+    for k in sorted(hist, key=hist.get, reverse=True):
+        print>>outf, '%4u\t%6u'% (k, hist[k])
+        
+
+def main():
+    if len(sys.argv) < 2:
+        hist = make_syscall_histogram(sys.stdin)
+    else:
+        hist = {}
+        for f in sys.argv[1:]:
+            make_syscall_histogram(open(f +'/'+ TRACE_NAME, 'r'), hist)
+
+    print_histogram(hist)
+
+if __name__ == '__main__':
+    main()
