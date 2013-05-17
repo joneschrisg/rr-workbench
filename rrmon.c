@@ -1,5 +1,7 @@
 /* -*- Mode: C++; tab-width: 8; c-basic-offset: 8; indent-tabs-mode: t; -*- */
 
+#include <errno.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <limits.h>
 #include <signal.h>
@@ -7,49 +9,55 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/prctl.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
 
+#define fatal(what)  do { perror(what); abort(); } while (0)
+
 struct process_stats {
-	uint64_t voluntary_ctxt_switches;
-	uint64_t nonvoluntary_ctxt_switches;
-	/* "The name can be up to 16 bytes long" */
+	struct rusage usage;
+        /* "The name can be up to 16 bytes long" */
 	char name[32];
 };
 
-int
-read_process_stats(pid_t pid, struct process_stats* stats)
+static void
+get_process_name(struct process_stats* stats)
 {
-	char status_path[PATH_MAX];
-	FILE* status_file;
-	char* line = NULL;
-	size_t line_len = 0;
+	char comm_path[PATH_MAX];
+	int fd;
+	ssize_t len;
 
-	snprintf(status_path, sizeof(status_path) - 1, "/proc/%d/status", pid);
-	status_file = fopen(status_path, "r");
-	if (!status_file) {
-		return -1;
-	}
+	sprintf(comm_path, "/proc/%d/comm", getpid());
+	fd = open(comm_path, O_RDONLY);
+	if (fd < 0)
+		fatal("open(comm_path)");
 
-	while(-1 != getline(&line, &line_len, status_file)) {
-		int nmatched;
-		nmatched = sscanf(line, "Name: %s", stats->name);
-		if (nmatched == 1) {
-			continue;
-		}
-		nmatched = sscanf(line, "voluntary_ctxt_switches: %" PRIu64,
-				  &stats->voluntary_ctxt_switches);
-		if (nmatched == 1) {
-			continue;
-		}
-		nmatched = sscanf(line, "nonvoluntary_ctxt_switches: %" PRIu64,
-				  &stats->nonvoluntary_ctxt_switches);
-	}
+	len = read(fd, stats->name, sizeof(stats->name) - 1);
+	if (len <= 1)
+		fatal("read(comm_path)");
 
-	fclose(status_file);
-	free(line);
+	/* eat newline character */
+	stats->name[len - 1] = '\0';
 
-	return 0;
+#if 0
+	/* XXX it'd be simpler to use prctl(PR_GET_NAME) here, but for
+	 * some reason under rr that's "" for xpcshell.  without rr,
+	 * it's "xpcshell", as expected. */
+	if (prctl(PR_GET_NAME, stats->name))
+		fatal("prctl(PR_GET_NAME)");
+#endif
+}
+
+static void
+get_process_stats(struct process_stats* stats)
+{
+	if (getrusage(RUSAGE_SELF, &stats->usage))
+		fatal("getrusage(RUSAGE_SELF)");
+	get_process_name(stats);
 }
 
 static void
@@ -57,16 +65,14 @@ dump_process_stats(void)
 {
 	struct process_stats stats;
 	memset(&stats, 0, sizeof(stats));
+	get_process_stats(&stats);
 
-	if (read_process_stats(getpid(), &stats)) {
-		fprintf(stderr, "Failed to get process stats");
-		return;
-	}
-
-	printf("RRMON[%d][%s]: vol: %" PRIu64 "; nonvol: %" PRIu64 "\n",
+	printf("RRMON[%d][%s]: vol: %ld; nonvol: %ld; sig: %ld"
+	       "; hard-fault: %ld\n",
 	       getpid(), stats.name,
-	       stats.voluntary_ctxt_switches,
-	       stats.nonvoluntary_ctxt_switches);
+	       stats.usage.ru_nvcsw, stats.usage.ru_nivcsw,
+	       stats.usage.ru_nsignals,
+	       stats.usage.ru_majflt);
 }
 
 static void
