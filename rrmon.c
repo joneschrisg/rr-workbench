@@ -2,6 +2,7 @@
 
 #include <inttypes.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -16,7 +17,9 @@ struct process_stats {
 	char name[32];
 };
 
-int read_process_stats(pid_t pid, struct process_stats* stats) {
+int
+read_process_stats(pid_t pid, struct process_stats* stats)
+{
 	char status_path[PATH_MAX];
 	FILE* status_file;
 	char* line = NULL;
@@ -30,7 +33,7 @@ int read_process_stats(pid_t pid, struct process_stats* stats) {
 
 	while(-1 != getline(&line, &line_len, status_file)) {
 		int nmatched;
-		nmatched = sscanf(line, "Name: %s", &stats->name);
+		nmatched = sscanf(line, "Name: %s", stats->name);
 		if (nmatched == 1) {
 			continue;
 		}
@@ -49,8 +52,8 @@ int read_process_stats(pid_t pid, struct process_stats* stats) {
 	return 0;
 }
 
-static void deinit() __attribute__((destructor));
-static void deinit()
+static void
+dump_process_stats(void)
 {
 	struct process_stats stats;
 	memset(&stats, 0, sizeof(stats));
@@ -64,4 +67,29 @@ static void deinit()
 	       getpid(), stats.name,
 	       stats.voluntary_ctxt_switches,
 	       stats.nonvoluntary_ctxt_switches);
+}
+
+static void
+sighandler(int signo)
+{
+	/* XXX assuming fatal for now */
+	/* XXX this is unsafe in general */
+	dump_process_stats();
+}
+
+static void init() __attribute__((constructor));
+static void
+init()
+{
+	int signals[] = { SIGABRT, SIGSEGV };
+	int i;
+	for (i = 0; i < sizeof(signals)/sizeof(signals[0]); ++i)
+		signal(signals[i], sighandler);
+}
+
+static void deinit() __attribute__((destructor));
+static void
+deinit()
+{
+	dump_process_stats();
 }
