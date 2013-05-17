@@ -94,6 +94,17 @@ record-bug-845190:
 		$(XPCSHELL_DIR)/tests/toolkit/components/search/tests/xpcshell
 
 
+.PHONY: syscall-histogram
+.help::
+	@echo " make [TRACES=trace_dir...] syscall-histogram"
+	@echo "    Build a histogram of unfiltered syscalls in local traces."
+	@echo "    By default, all traces are counted.  Specify TRACES to"
+	@echo "    accumulate a different set."
+TRACES ?= $(shell find . -maxdepth 1 -name 'trace_*')
+syscall-histogram:
+	./syscall-histogram $(TRACES)
+
+
 .PHONY: update-firefox
 help::
 	@echo "  make [FF_URL=url] update-firefox"
