@@ -29,8 +29,17 @@ endif
 
 
 # Shortcut for what you're currently working on, to save typing
-default: record-bug-845190
+default: clean record-bug-845190
 
+#
+# XXX this incantation records a trace of kernel scheduling decisions
+#
+#   sudo make DBG="--debugger=perf --debugger-args='sched record -o /home/cjones/rr/workbench/sched.data /home/cjones/rr/rr/obj/bin/rr --record --filter_lib=/home/cjones/rr/rr/obj/lib/librrwrap_syscalls.so'"
+#
+# Then to see the context switches,
+#
+#   perf sched map
+#
 
 .PHONY: help
 help::
