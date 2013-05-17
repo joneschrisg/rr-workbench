@@ -11,7 +11,9 @@
 
 struct process_stats {
 	uint64_t voluntary_ctxt_switches;
-	uint64_t nonvoluntary_ctxt_switches;	
+	uint64_t nonvoluntary_ctxt_switches;
+	/* "The name can be up to 16 bytes long" */
+	char name[32];
 };
 
 int read_process_stats(pid_t pid, struct process_stats* stats) {
@@ -28,6 +30,10 @@ int read_process_stats(pid_t pid, struct process_stats* stats) {
 
 	while(-1 != getline(&line, &line_len, status_file)) {
 		int nmatched;
+		nmatched = sscanf(line, "Name: %s", &stats->name);
+		if (nmatched == 1) {
+			continue;
+		}
 		nmatched = sscanf(line, "voluntary_ctxt_switches: %" PRIu64,
 				  &stats->voluntary_ctxt_switches);
 		if (nmatched == 1) {
@@ -54,8 +60,8 @@ static void deinit()
 		return;
 	}
 
-	printf("RRMON[%d] vol: %" PRIu64 "; nonvol: %" PRIu64 "\n",
-	       getpid(),
+	printf("RRMON[%d][%s]: vol: %" PRIu64 "; nonvol: %" PRIu64 "\n",
+	       getpid(), stats.name,
 	       stats.voluntary_ctxt_switches,
 	       stats.nonvoluntary_ctxt_switches);
 }
