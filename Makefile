@@ -4,8 +4,8 @@ RR_DIR ?= ../rr
 FF_DIR ?= .ff
 # XXX: sigh, no debug nightly builds.  Nor symbolic links to "latest"
 # or something.  So this is an arbitrarily-chosen, healthy-looking
-# build from 2013/05/14.
-FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/tinderbox-builds/mozilla-central-linux-debug/1368477222/
+# build from 2013/06/20.
+FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/tinderbox-builds/mozilla-central-linux-debug/1371733138/
 #FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/
 
 OBJDIR = $(RR_DIR)/obj
