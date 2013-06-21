@@ -19,9 +19,12 @@ LIB = $(OBJDIR)/lib/librr_wrap_syscalls.so
 FF = "$(FF_DIR)/firefox/firefox"
 XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
-RECORD ?= --record --filter_lib="$(abspath $(LIB))"
+#RECORD ?= --record --filter_lib="$(abspath $(LIB))"
+RECORD ?= --record
 
 DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
+
+TRACE ?= trace_0
 
 ifdef TEST_PATH
 TEST_PATH_ARG := --test-path="$(TEST_PATH)"
@@ -110,6 +113,14 @@ record-bug-845190:
 		--verbose \
 		$(XPCSHELL) \
 		$(XPCSHELL_DIR)/tests/toolkit/components/search/tests/xpcshell
+
+
+.PHONY: replay
+help::
+	@echo "  make [TRACE=dir] replay"
+	@echo "    Replay the recording TRACE (default trace_0) on autopilot."
+replay:
+	$(RR) --replay --autopilot $(TRACE)
 
 
 .PHONY: syscall-histogram
