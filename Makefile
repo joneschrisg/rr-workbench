@@ -1,11 +1,11 @@
 WORKDIR = $(CURDIR)
 
 RR_DIR ?= ../rr
-FF_DIR ?= .ff
+FF_DIR ?= ../ff-rr
 # XXX: sigh, no debug nightly builds.  Nor symbolic links to "latest"
 # or something.  So this is an arbitrarily-chosen, healthy-looking
 # build from 2013/06/20.
-FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/tinderbox-builds/mozilla-central-linux-debug/1371733138/
+#FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/tinderbox-builds/mozilla-central-linux-debug/1371733138/
 #FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/
 
 OBJDIR = $(RR_DIR)/obj
@@ -16,11 +16,17 @@ XPCSHELL_DIR = $(FF_DIR)/xpcshell
 RR = "$(OBJDIR)/bin/rr"
 LIB = $(OBJDIR)/lib/librr_wrap_syscalls.so
 
-FF = "$(FF_DIR)/firefox/firefox"
-XPCSHELL = "$(FF_DIR)/bin/xpcshell"
+#FF = "$(FF_DIR)/firefox/firefox"
+#XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
+# Current testing build made from hg commit 61c3c8b85563.
+FF = "$(FF_DIR)/dist/bin/firefox"
+XPCSHELL = "$(FF_DIR)/dist/bin/xpcshell"
+
+DEBUG ?= --replay
 #RECORD ?= --record --filter_lib="$(abspath $(LIB))"
 RECORD ?= --record
+REPLAY ?= --replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
 
@@ -63,6 +69,14 @@ help::
 	@echo "    Remove all trace directories."
 clean:
 	rm -rf trace_* *.o *.so
+
+
+.PHONY: debug
+help::
+	@echo "  make [TRACE=dir] debug"
+	@echo "    Start a debug server for TRACE (default trace_0)."
+debug:
+	$(RR) $(DEBUG) $(TRACE)
 
 
 .PHONY: record-firefox
@@ -120,7 +134,7 @@ help::
 	@echo "  make [TRACE=dir] replay"
 	@echo "    Replay the recording TRACE (default trace_0) on autopilot."
 replay:
-	$(RR) --replay --autopilot $(TRACE)
+	$(RR) $(REPLAY) $(TRACE)
 
 
 .PHONY: syscall-histogram
