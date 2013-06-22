@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export MOZCONFIG="$HOME/rr/mozilla-central/firefox-config-rr"
+make -f client.mk build
