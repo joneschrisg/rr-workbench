@@ -14,7 +14,7 @@ MOCHITEST_DIR = $(FF_DIR)/mochitest
 XPCSHELL_DIR = $(FF_DIR)/xpcshell
 
 RR = "$(OBJDIR)/bin/rr"
-LIB = $(OBJDIR)/lib/librr_wrap_syscalls.so
+LIB = $(OBJDIR)/lib/librr_syscall_buffer.so
 
 #FF = "$(FF_DIR)/firefox/firefox"
 #XPCSHELL = "$(FF_DIR)/bin/xpcshell"
@@ -24,8 +24,8 @@ FF = "$(FF_DIR)/dist/bin/firefox"
 XPCSHELL = "$(FF_DIR)/dist/bin/xpcshell"
 
 DEBUG ?= --replay
-#RECORD ?= --record --filter_lib="$(abspath $(LIB))"
 RECORD ?= --record
+#RECORD ?= --record --filter_lib="$(abspath $(LIB))"
 REPLAY ?= --replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
@@ -43,7 +43,7 @@ default: clean record-bug-845190
 #
 # XXX this incantation records a trace of kernel scheduling decisions
 #
-#   sudo make DBG="--debugger=perf --debugger-args='sched record -o /home/cjones/rr/workbench/sched.data /home/cjones/rr/rr/obj/bin/rr --record --filter_lib=/home/cjones/rr/rr/obj/lib/librrwrap_syscalls.so'"
+#   sudo make DBG="--debugger=perf --debugger-args='sched record -o /home/cjones/rr/workbench/sched.data /home/cjones/rr/rr/obj/bin/rr --record --filter_lib=/home/cjones/rr/rr/obj/lib/librr_syscall_buffer.so'"
 #
 # Then to see the context switches,
 #
