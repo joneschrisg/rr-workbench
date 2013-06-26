@@ -7,6 +7,7 @@
 #include <sys/ioctl.h>
 #include <sys/ptrace.h>
 #include <sys/syscall.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/user.h>
 #include <sys/wait.h>
@@ -65,6 +66,7 @@ child()
     size_t nr_switches = 1, ticks = 1 << 11;
 
     int fd;
+    struct timeval tv;
 
     printf("symbol info: chew_cpu() = %p, child() = %p\n", chew_cpu, child);
 
@@ -79,6 +81,8 @@ child()
     if (ioctl(fd, PERF_EVENT_IOC_ENABLE, 0))
         err(1, "ioctl(PERF_EVENT_ENABLE)");
 
+    //gettimeofday(&tv, NULL);
+    (void)tv;
     chew_cpu(ticks);
 
     _exit(0);
