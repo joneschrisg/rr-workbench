@@ -23,10 +23,10 @@ LIB = $(OBJDIR)/lib/librr_syscall_buffer.so
 FF = "$(FF_DIR)/dist/bin/firefox"
 XPCSHELL = "$(FF_DIR)/dist/bin/xpcshell"
 
-DEBUG ?= --replay
-RECORD ?= --record
-#RECORD ?= --record --filter_lib="$(abspath $(LIB))"
-REPLAY ?= --replay --autopilot
+DEBUG ?= replay
+RECORD ?= record
+#RECORD ?= record --filter_lib="$(abspath $(LIB))"
+REPLAY ?= replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
 
@@ -43,7 +43,7 @@ default: clean record-bug-845190
 #
 # XXX this incantation records a trace of kernel scheduling decisions
 #
-#   sudo make DBG="--debugger=perf --debugger-args='sched record -o /home/cjones/rr/workbench/sched.data /home/cjones/rr/rr/obj/bin/rr --record --filter_lib=/home/cjones/rr/rr/obj/lib/librr_syscall_buffer.so'"
+#   sudo make DBG="--debugger=perf --debugger-args='sched record -o /home/cjones/rr/workbench/sched.data /home/cjones/rr/rr/obj/bin/rr record --filter_lib=/home/cjones/rr/rr/obj/lib/librr_syscall_buffer.so'"
 #
 # Then to see the context switches,
 #
@@ -54,7 +54,7 @@ default: clean record-bug-845190
 help::
 	@echo "Available targets are documented below.  Common options:"
 	@echo "  make DBG='[--debugger=program [--debugger-args=args]]' ..."
-	@echo "    Use a test 'debugger' other than |rr --record|, which"
+	@echo "    Use a test 'debugger' other than |rr record|, which"
 	@echo "    is the default."
 	@echo "  --or--"
 	@echo "  make RECORD='recording-options' ..."
