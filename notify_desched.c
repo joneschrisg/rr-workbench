@@ -6,6 +6,7 @@
 #include <linux/perf_event.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <sys/ptrace.h>
@@ -17,14 +18,14 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-#if 0
-# define debug(msg, ...) printf(msg, ##__VA_ARG__)
+#if 1
+# define debug(msg, ...) printf(msg, ##__VA_ARGS__)
 #else
 # define debug(...) ((void)0)
 #endif
 
-static const size_t nr_switches = 1, cpu_ticks = 1 << 20, io_ticks = 20;
-static const enum { CPU, IO } which = IO;
+static const enum { CPU, IO } which = CPU;
+static const size_t nr_switches = 1, cpu_ticks = 1 << 25, io_ticks = 10;
 
 /*-----------------------------------------------------------------------------
  * Shared
@@ -187,26 +188,22 @@ chew_cpu(size_t ticks)
 static void
 spam_io(size_t ticks)
 {
+    int fd = open("/dev/null", O_WRONLY);
     ssize_t i;
-    int fd;
-
-#if 1
-    /* With this, we get |ticks| de-sched interrupts.  Scheduler seems
-     * to tune for tty to be very interactive. */
-    fd = STDOUT_FILENO;
-#else
-    /* With this, we get 0 de-scheds.  That's more like what one would
-     * expect.*/
-    fd = open("/tmp/cs_signal.foo", O_WRONLY | O_CREAT | O_TRUNC, 0644);
-#endif
 
     for (i = ticks - 1; i >= 0; --i) {
         arm_desched_notification();
-
+#if 0
+        /* This is very very unlikely to desched us. */
         write(fd, i ? "." : "\n", 1);
-
+#else
+        /* This has to desched us. */
+        system("sleep 1");
+#endif
         disarm_desched_notification();
     }
+
+    close(fd);
 }
 
 static void
@@ -305,10 +302,10 @@ parent()
              * desched signal?   */
             ptrace(PTRACE_SINGLESTEP, p, 0, 0);
             waitpid(p, &status, 0);
-            dump_status(p, status);
             assert(WIFSTOPPED(status) && SIGIO == WSTOPSIG(status));
 
             ptrace(PTRACE_GETREGS, p, 0, &regs);
+            debug("    (after pseudo-step, at %p\n", (void*)regs.eip);
         }
 
         debug("%d continue\n", p);
