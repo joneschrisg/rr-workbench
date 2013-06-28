@@ -75,6 +75,7 @@ parent(pid_t c)
         void* str = (void*)regs.ecx;
         int len = regs.edx;
         struct user_regs_struct callregs;
+        int j;
 
         printf("parent: child requests rpc for syscall %d (write; str=%p, len=%d)\n",
                syscallno, str, len);
@@ -84,27 +85,32 @@ parent(pid_t c)
         waitpid(c, &status, 0);
         dump_status(c, status);
 
+        /* registers for return to rpc syscall */
         ptrace(PTRACE_GETREGS, c, 0, &regs);
         regs.eax = 0;
         printf("parent: setting ret=0 for ip %p\n", (void*)regs.eip);
 
+        /* (in production, overwrite eip with int 0x80) */
         memcpy(&callregs, &regs, sizeof(callregs));
-        callregs.eax = SYS_write;
-        callregs.ebx = STDOUT_FILENO;
-        callregs.ecx = (uintptr_t)str;
-        callregs.edx = len;
-        ptrace(PTRACE_SETREGS, c, 0, &callregs);
-        /* overwrite eip with int 0x80 */
+        for (j = 0; j < 5; ++j) {
+            /* set up artificial syscall */
+            callregs.eax = SYS_write;
+            callregs.ebx = STDOUT_FILENO;
+            callregs.ecx = (uintptr_t)str;
+            callregs.edx = len;
+            ptrace(PTRACE_SETREGS, c, 0, &callregs);
+            callregs.eip = regs.eip;
 
-        puts("parent: entering artificial syscall ...");
-        ptrace(PTRACE_SYSCALL, c, 0, 0);
-        waitpid(c, &status, 0);
-        dump_status(c, status);
+            puts("parent: entering artificial syscall ...");
+            ptrace(PTRACE_SYSCALL, c, 0, 0);
+            waitpid(c, &status, 0);
+            dump_status(c, status);
 
-        puts("parent: ... finishing syscall ...");
-        ptrace(PTRACE_SYSCALL, c, 0, 0);
-        waitpid(c, &status, 0);
-        dump_status(c, status);
+            puts("parent: ... finishing syscall ...");
+            ptrace(PTRACE_SYSCALL, c, 0, 0);
+            waitpid(c, &status, 0);
+            dump_status(c, status);
+        }
 
         puts("parent: done, restoring regs from before phony syscall");
         /* restore eip */
