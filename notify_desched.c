@@ -4,6 +4,7 @@
 #include <err.h>
 #include <fcntl.h>
 #include <linux/perf_event.h>
+#include <sched.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,15 +17,16 @@
 #include <sys/types.h>
 #include <sys/user.h>
 #include <sys/wait.h>
+#include <time.h>
 #include <unistd.h>
 
 #if 1
-# define debug(msg, ...) printf(msg, ##__VA_ARGS__)
+# define debug(msg, ...) printf(msg "\n", ##__VA_ARGS__)
 #else
 # define debug(...) ((void)0)
 #endif
 
-static const enum { CPU, IO } which = CPU;
+static const enum { CPU, IO } which = IO;
 static const size_t nr_switches = 1, cpu_ticks = 1 << 25, io_ticks = 10;
 
 /*-----------------------------------------------------------------------------
@@ -56,7 +58,7 @@ send_fd(int fd, int socket)
     cmsg->cmsg_type = SCM_RIGHTS;
     *(int*)CMSG_DATA(cmsg) = fd;
 
-    debug("sending fd %d\n", fd);
+    debug("sending fd %d", fd);
 
     if (0 >= sendmsg(socket, &msg, 0))
         err(1, "sendmsg(fd=%d)", fd);
@@ -88,7 +90,7 @@ recv_fd(int socket, int* fdno)
     assert(cmsg->cmsg_level == SOL_SOCKET && cmsg->cmsg_type  == SCM_RIGHTS);
     fd = *(int*)CMSG_DATA(cmsg);
 
-    debug("received fdno=%d as fd %d\n", *fdno, fd);
+    debug("received fdno=%d as fd %d", *fdno, fd);
 
     return fd;
 }
@@ -193,13 +195,22 @@ spam_io(size_t ticks)
 
     for (i = ticks - 1; i >= 0; --i) {
         arm_desched_notification();
-#if 0
+
+#if 1
+        sched_yield();
+#elif 0
         /* This is very very unlikely to desched us. */
-        write(fd, i ? "." : "\n", 1);
-#else
+        //write(fd, i ? "." : "\n", 1);
+        write(STDOUT_FILENO, i ? "." : "\n", 1);
+#elif 0
         /* This has to desched us. */
         system("sleep 1");
+#else
+        struct timespec req = { .tv_sec = 1, .tv_nsec = 0 };
+        struct timespec rem;
+        nanosleep(&req, &rem);
 #endif
+
         disarm_desched_notification();
     }
 
@@ -211,13 +222,13 @@ child()
 {
     debug("child: execution info:\n"
            "  child() = %p\n"
-           "  nr_switches = %u\n",
+           "  nr_switches = %u",
            child,
            nr_switches);
     if (IO == which) {
-        debug("  spam_io() = %p, %u ticks\n", spam_io, io_ticks);
+        debug("  spam_io() = %p, %u ticks", spam_io, io_ticks);
     } else {
-        debug("  chew_cpu() = %p, %u ticks\n", chew_cpu, cpu_ticks);
+        debug("  chew_cpu() = %p, %u ticks", chew_cpu, cpu_ticks);
     }
 
     counter_fd = open_counter(nr_switches);
@@ -248,21 +259,45 @@ static int
 dump_status(pid_t p, int status)
 {
     if (WIFSTOPPED(status)) {
-        debug("%d stopped by signal %d\n", p, WSTOPSIG(status));
+        debug("%d stopped by signal %d", p, WSTOPSIG(status));
         return 1;
     } else if (WIFCONTINUED(status)) {
-        debug("%d continued by SIGCONT\n", p);
+        debug("%d continued by SIGCONT", p);
         return 1;
     } else if (WIFEXITED(status)) {
-        debug("%d exited with code %d\n", p, WEXITSTATUS(status));
+        debug("%d exited with code %d", p, WEXITSTATUS(status));
         return 0;
     } else if (WIFSIGNALED(status)) {
-        debug("%d terminated by signal %d\n", p, WTERMSIG(status));
+        debug("%d terminated by signal %d", p, WTERMSIG(status));
         return 0;
     } else {
-        debug("%d seems to be running normally\n", p);
+        debug("%d seems to be running normally", p);
         return 1;
     }
+}
+
+static void
+dump_siginfo_regs(const char* pfx, pid_t tid, int status)
+{
+    struct siginfo si;
+    struct user_regs_struct regs;
+
+    ptrace(PTRACE_GETSIGINFO, tid, 0, &si);
+    ptrace(PTRACE_GETREGS, tid, 0, &regs);
+    debug("%s%d: stopped at %p (status 0x%x)\n"
+          "    sig:%d (code:%d; fd:%d)\n"
+          "    eax:%lx ebx:%lx ecx:%lx edx:%lx\n"
+          "    esi:%lx edi:%lx\n"
+          "    orig_eax:%ld\n"
+          "    ebp:%lx esp:%lx\n"
+          "    eip:%lx",
+          pfx ? pfx : "", tid, (void*)regs.eip, status,
+          si.si_signo, si.si_code, si.si_fd,
+          regs.eax, regs.ebx, regs.ecx, regs.edx,
+          regs.esi, regs.edi,
+          regs.orig_eax,
+          regs.ebp, regs.esp,
+          regs.eip);
 }
 
 static void
@@ -280,9 +315,10 @@ parent()
             break;
         }
 
+        if (ptrace(PTRACE_SETOPTIONS, p, 0, (void*)PTRACE_O_TRACESYSGOOD))
+            err(1, "ptrace(SETOPTIONS)");
+
         if (WIFSTOPPED(status) && SIGIO == WSTOPSIG(status)) {
-            struct siginfo si;
-            struct user_regs_struct regs;
             uint64_t nr_desched;
 
             if (sizeof(nr_desched) != read(child_counter, &nr_desched,
@@ -290,25 +326,29 @@ parent()
                 err(1, "read(child_counter)");
             disable_counter(child_counter);
             ++nr_observed_descheds;
+            debug("  desched %llu; observed %d",
+                  nr_desched, nr_observed_descheds);
 
-            ptrace(PTRACE_GETSIGINFO, p, 0, &si);
-            ptrace(PTRACE_GETREGS, p, 0, &regs);
-            debug("    desched no. %llu at %p (fd %d)\n",
-                   nr_desched, (void*)regs.eip, si.si_fd);
+            dump_siginfo_regs("  at first SIGIO: ", p, status);
 
-            /* XXX why do we have to do this?  Shouldn't PTRACE_CONT
-             * with signo 0 stop delivery?  Is the child being
-             * scheduled and then descheduled somehow after the first
-             * desched signal?   */
-            ptrace(PTRACE_SINGLESTEP, p, 0, 0);
+            debug("skip SIGIO:");
+            ptrace(PTRACE_SYSCALL, p, 0, 0);
             waitpid(p, &status, 0);
             assert(WIFSTOPPED(status) && SIGIO == WSTOPSIG(status));
+            dump_siginfo_regs("  after: ", p, status);
 
-            ptrace(PTRACE_GETREGS, p, 0, &regs);
-            debug("    (after pseudo-step, at %p\n", (void*)regs.eip);
+            debug("\nsyscall:");
+            ptrace(PTRACE_SYSCALL, p, 0, 0);
+            waitpid(p, &status, 0);
+            dump_siginfo_regs("  after: ", p, status);
+
+            debug("\nfinish syscall:");
+            ptrace(PTRACE_SYSCALL, p, 0, 0);
+            waitpid(p, &status, 0);
+            dump_siginfo_regs("  after: ", p, status);
         }
 
-        debug("%d continue\n", p);
+        debug("%d continue", p);
         ptrace(PTRACE_CONT, p, 0, 0);
     }
 
