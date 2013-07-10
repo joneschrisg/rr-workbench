@@ -196,7 +196,7 @@ spam_io(size_t ticks)
     for (i = ticks - 1; i >= 0; --i) {
         arm_desched_notification();
 
-#if 1
+#if 0
         sched_yield();
 #elif 0
         /* This is very very unlikely to desched us. */
@@ -330,6 +330,8 @@ parent()
                   nr_desched, nr_observed_descheds);
 
             dump_siginfo_regs("  at first SIGIO: ", p, status);
+
+            exit(0);
 
             debug("skip SIGIO:");
             ptrace(PTRACE_SYSCALL, p, 0, 0);

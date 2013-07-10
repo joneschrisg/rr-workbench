@@ -1,6 +1,6 @@
 WORKDIR = $(CURDIR)
 
-RR_DIR ?= ../rr
+RR_DIR ?= $(abspath ../rr)
 FF_DIR ?= ../ff-rr
 # XXX: sigh, no debug nightly builds.  Nor symbolic links to "latest"
 # or something.  So this is an arbitrarily-chosen, healthy-looking
@@ -14,7 +14,6 @@ MOCHITEST_DIR = $(FF_DIR)/mochitest
 XPCSHELL_DIR = $(FF_DIR)/xpcshell
 
 RR = "$(OBJDIR)/bin/rr"
-LIB = $(OBJDIR)/lib/librr_syscall_buffer.so
 
 #FF = "$(FF_DIR)/firefox/firefox"
 #XPCSHELL = "$(FF_DIR)/bin/xpcshell"
@@ -24,8 +23,8 @@ FF = "$(FF_DIR)/dist/bin/firefox"
 XPCSHELL = "$(FF_DIR)/dist/bin/xpcshell"
 
 DEBUG ?= replay
-RECORD ?= record
-#RECORD ?= record --filter_lib="$(abspath $(LIB))"
+#RECORD ?= record
+RECORD ?= record -b
 REPLAY ?= replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
