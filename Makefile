@@ -18,7 +18,8 @@ RR = "$(OBJDIR)/bin/rr"
 #FF = "$(FF_DIR)/firefox/firefox"
 #XPCSHELL = "$(FF_DIR)/bin/xpcshell"
 
-# Current testing build made from hg commit 61c3c8b85563.
+# Current testing build made from hg commit 61c3c8b85563, git
+# 6d609cfea6cfbaa867266954471db5f455ae35d1.
 FF = "$(FF_DIR)/dist/bin/firefox"
 XPCSHELL = "$(FF_DIR)/dist/bin/xpcshell"
 
