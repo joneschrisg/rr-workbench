@@ -3,45 +3,84 @@
 import re, sys
 HEX_RX = r'[\da-fA-F]+'
 INT_RX = r'[\-]?\d+'
-#global_time thread_time tid reason entry/exit hw_interrupts page_faults adapted_rbc instructions eax ebx ecx edx esi edi ebp orig_eax esp eip eflags
-TRACE_EVENT_RX = re.compile(
-    r'^'+
-    r'\s+(?P<global_time>'+ INT_RX +r')\s+(?P<thread_time>'+ INT_RX +r')'+
-    r'\s+(?P<tid>'+ INT_RX +r')\s+(?P<reason>'+ INT_RX +r'[\-]?\d+)')
 
+def make_int_scanner(*names):
+    rx = r'^'
+    for name in names:
+        rx += r'\s+(?P<' + name + r'>'+ INT_RX +r')'
+    return re.compile(rx)
+
+# global_time thread_time tid reason entry/exit hw_interrupts page_faults adapted_rbc instructions eax ebx ecx edx esi edi ebp orig_eax esp eip eflags
+TRACE_FIELDS = ('global_time', 'thread_time', 'tid', 'reason', 'entry_exit',
+                'hw_ints', 'page_faults', 'rbc', 'insns')
+TRACE_EVENT_RX = make_int_scanner(*TRACE_FIELDS)
 TRACE_NAME = 'trace_0'
 
-def make_syscall_histogram(inf, hist={}):
+class Event:
+    def __init__(self, m):
+        for field in TRACE_FIELDS:
+            setattr(self, field, int(m.group(field)))
+
+def iterevents(inf):
     for line in inf:
         m = TRACE_EVENT_RX.match(line)
         if not m:
             continue
+        yield Event(m)
 
-        syscall = int(m.group('reason'))
+def incr_histogram_item(hist, item):
+    count = hist.get(item, 0)
+    count += 1
+    hist[item] = count
+
+def accum_syscall_histogram(inf, hist={}):
+    for ev in iterevents(inf):
+        syscall = ev.reason
         if syscall < 0:
             continue
-
-        c = hist.get(syscall, 0)
-        c += 1
-        hist[syscall] = c
-
+        incr_histogram_item(hist, syscall)
     return hist
 
-def print_histogram(hist, outf=sys.stdout):
-    print>>outf, 'syscall\tcount'
+def accum_insn_histogram(inf, hist={}):
+    for ev in iterevents(inf):
+        if ev.insns <= 0 or ev.rbc <= 0:
+            continue
+        insns_per_rcb = int(ev.insns / ev.rbc)
+        incr_histogram_item(hist, insns_per_rcb)
+    return hist
+
+def print_histogram(name, hist, outf=sys.stdout):
+    print>>outf, name +'\tcount'
+    print>>outf, '-------\t-----'
     for k in sorted(hist, key=hist.get, reverse=True):
         print>>outf, '%4u\t%6u'% (k, hist[k])
-        
 
-def main():
-    if len(sys.argv) < 2:
-        hist = make_syscall_histogram(sys.stdin)
+def usage(argv):
+    print>>sys.stderr, 'Usage:'
+    print>>sys.stderr, '   ', argv[0], '("syscall"|"insns") <trace-dir>...'
+    print>>sys.stderr, '   ', argv[0]
+    sys.exit(1)
+
+def main(argv):
+    hist = {}
+    if len(argv) < 2:
+        which = 'syscall'
+        accum_syscall_histogram(sys.stdin, hist)
+    elif len(argv) == 2:
+        usage(argv)
     else:
-        hist = {}
-        for f in sys.argv[1:]:
-            make_syscall_histogram(open(f +'/'+ TRACE_NAME, 'r'), hist)
+        which = argv[1]
+        for f in argv[2:]:
+            trace_file = open(f +'/'+ TRACE_NAME, 'r')
+            if which == 'syscall':
+                accum_syscall_histogram(trace_file, hist)
+            elif which == 'insns/rcb':
+                accum_insn_histogram(open(f +'/'+ TRACE_NAME, 'r'), hist)
+            else:
+                usage(argv)
+            trace_file.close()
 
-    print_histogram(hist)
+    print_histogram('ins/rcb' if which == 'insns/rcb' else 'syscall', hist)
 
 if __name__ == '__main__':
-    main()
+    main(sys.argv)
