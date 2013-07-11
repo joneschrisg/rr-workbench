@@ -57,7 +57,7 @@ def print_histogram(name, hist, outf=sys.stdout):
 
 def usage(argv):
     print>>sys.stderr, 'Usage:'
-    print>>sys.stderr, '   ', argv[0], '("syscall"|"insns") <trace-dir>...'
+    print>>sys.stderr, '   ', argv[0], '("syscall"|"insns/rcb") <trace-dir>...'
     print>>sys.stderr, '   ', argv[0]
     sys.exit(1)
 
