@@ -1,27 +1,27 @@
 WORKDIR = $(CURDIR)
 
 RR_DIR ?= $(abspath ../rr)
-FF_DIR ?= ../ff-rr
+OBJDIR = $(RR_DIR)/obj
+RR ?= "$(OBJDIR)/bin/rr"
+
+# Current testing build made from hg commit 61c3c8b85563, git
+# 6d609cfea6cfbaa867266954471db5f455ae35d1.
+FF_DIR ?= .ff
 # XXX: sigh, no debug nightly builds.  Nor symbolic links to "latest"
 # or something.  So this is an arbitrarily-chosen, healthy-looking
 # build from 2013/06/20.
-#FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/tinderbox-builds/mozilla-central-linux-debug/1371733138/
+FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/tinderbox-builds/mozilla-central-linux-debug/1371733138/
 #FF_URL ?= http://ftp.mozilla.org/pub/mozilla.org/firefox/nightly/latest-trunk/
-
-OBJDIR = $(RR_DIR)/obj
 LOG = $(FF_DIR)/mochitest.log
 MOCHITEST_DIR = $(FF_DIR)/mochitest
 XPCSHELL_DIR = $(FF_DIR)/xpcshell
 
-RR = "$(OBJDIR)/bin/rr"
+#XRE_PATH ?= $(FF_DIR)/firefox
+XRE_PATH ?= ../ff-rr/dist/bin
 
-#FF = "$(FF_DIR)/firefox/firefox"
-#XPCSHELL = "$(FF_DIR)/bin/xpcshell"
-
-# Current testing build made from hg commit 61c3c8b85563, git
-# 6d609cfea6cfbaa867266954471db5f455ae35d1.
-FF = "$(FF_DIR)/dist/bin/firefox"
-XPCSHELL = "$(FF_DIR)/dist/bin/xpcshell"
+FF ?= "$(XRE_PATH)/firefox"
+#XPCSHELL ?= "$(FF_DIR)/bin/xpcshell"
+XPCSHELL = $(XRE_PATH)/xpcshell
 
 DEBUG ?= replay
 #RECORD ?= record
@@ -123,7 +123,7 @@ record-bug-845190:
 	_RR_TRACE_DIR="$(WORKDIR)" python $(XPCSHELL_DIR)/runxpcshelltests.py \
 		$(DBG) \
 		--test-path=test_645970.js \
-		--xre-path=$(FF_DIR)/firefox \
+		--xre-path=$(XRE_PATH) \
 		--verbose \
 		$(XPCSHELL) \
 		$(XPCSHELL_DIR)/tests/toolkit/components/search/tests/xpcshell

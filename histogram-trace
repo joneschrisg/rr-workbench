@@ -14,18 +14,22 @@ def make_int_scanner(*names):
 TRACE_FIELDS = ('global_time', 'thread_time', 'tid', 'reason', 'entry_exit',
                 'hw_ints', 'page_faults', 'rbc', 'insns')
 TRACE_EVENT_RX = make_int_scanner(*TRACE_FIELDS)
+TRACE_SYNTH_EVENT_RX = make_int_scanner(*TRACE_FIELDS[0:4])
 TRACE_NAME = 'trace_0'
 
 class Event:
     def __init__(self, m):
+        values = m.groupdict(-1)
         for field in TRACE_FIELDS:
-            setattr(self, field, int(m.group(field)))
+            setattr(self, field, int(values.get(field, -1)))
 
 def iterevents(inf):
     for line in inf:
         m = TRACE_EVENT_RX.match(line)
         if not m:
-            continue
+            m = TRACE_SYNTH_EVENT_RX.match(line)
+            if not m:
+                continue
         yield Event(m)
 
 def incr_histogram_item(hist, item):
@@ -49,6 +53,18 @@ def accum_insn_histogram(inf, hist={}):
         incr_histogram_item(hist, insns_per_rcb)
     return hist
 
+FLUSH_EVENT = -1015
+def accum_flush_histogram(inf, hist={}):
+    flushed = 0
+    for ev in iterevents(inf):
+        if ev.reason == FLUSH_EVENT:
+            assert not flushed
+            flushed = 1
+            continue
+        if flushed:
+            flushed = 0
+            incr_histogram_item(hist, ev.reason)
+
 def print_histogram(name, hist, outf=sys.stdout):
     print>>outf, name +'\tcount'
     print>>outf, '-------\t-----'
@@ -60,6 +76,16 @@ def usage(argv):
     print>>sys.stderr, '   ', argv[0], '("syscall"|"insns/rcb") <trace-dir>...'
     print>>sys.stderr, '   ', argv[0]
     sys.exit(1)
+
+def label_for(which):
+    if which == 'insns/rcb':
+        return 'ins/rcb'
+    elif which == 'syscall':
+        return 'syscall'
+    elif which == 'flush':
+        return 'why'
+    else:
+        assert 0 and 'Unknown histogram'
 
 def main(argv):
     hist = {}
@@ -75,12 +101,14 @@ def main(argv):
             if which == 'syscall':
                 accum_syscall_histogram(trace_file, hist)
             elif which == 'insns/rcb':
-                accum_insn_histogram(open(f +'/'+ TRACE_NAME, 'r'), hist)
+                accum_insn_histogram(trace_file, hist)
+            elif which == 'flush':
+                accum_flush_histogram(trace_file, hist)
             else:
                 usage(argv)
             trace_file.close()
 
-    print_histogram('ins/rcb' if which == 'insns/rcb' else 'syscall', hist)
+    print_histogram(label_for(which), hist)
 
 if __name__ == '__main__':
     main(sys.argv)
