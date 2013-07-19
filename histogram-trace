@@ -12,7 +12,8 @@ def make_int_scanner(*names):
 
 # global_time thread_time tid reason entry/exit hw_interrupts page_faults adapted_rbc instructions eax ebx ecx edx esi edi ebp orig_eax esp eip eflags
 TRACE_FIELDS = ('global_time', 'thread_time', 'tid', 'reason', 'entry_exit',
-                'hw_ints', 'page_faults', 'rbc', 'insns')
+                'hw_ints', 'page_faults', 'rbc', 'insns',
+                'eax', 'ebx', 'ecx', 'edx', 'esi', 'edi', 'ebp', 'orig_eax')
 TRACE_EVENT_RX = make_int_scanner(*TRACE_FIELDS)
 TRACE_SYNTH_EVENT_RX = make_int_scanner(*TRACE_FIELDS[0:4])
 TRACE_NAME = 'trace_0'
@@ -65,11 +66,25 @@ def accum_flush_histogram(inf, hist={}):
             flushed = 0
             incr_histogram_item(hist, ev.reason)
 
+SYS_socketcall = 102
+# NB: tuple is indexed by socketcall sub-call, so order is important.
+# Also, we're trying to print these names within one "tab", so the
+# names are truncated at 7 characters.
+SOCKETCALLS = ( '???', 'socket', 'bind', 'connect', 'listen', 'accept',
+                'getsckn', 'getpern', 'sktpair', 'send', 'recv',
+                'sendto', 'recvfrom', 'shutdwn', 'stskopt',
+                'gtskopt', 'sendmsg', 'recvmsg', 'accept4',
+                'rcvmmsg', 'sndmmsg' )
+def accum_socketcall_histogram(inf, hist={}):
+    for ev in iterevents(inf):
+        if ev.reason == SYS_socketcall:
+            incr_histogram_item(hist, SOCKETCALLS[ev.ebx])
+
 def print_histogram(name, hist, outf=sys.stdout):
     print>>outf, name +'\tcount'
     print>>outf, '-------\t-----'
     for k in sorted(hist, key=hist.get, reverse=True):
-        print>>outf, '%4u\t%6u'% (k, hist[k])
+        print>>outf, '%7s\t%6u'% (str(k), hist[k])
 
 def usage(argv):
     print>>sys.stderr, 'Usage:'
@@ -84,6 +99,8 @@ def label_for(which):
         return 'syscall'
     elif which == 'flush':
         return 'why'
+    elif which == 'socketcall':
+        return 'call'
     else:
         assert 0 and 'Unknown histogram'
 
@@ -104,6 +121,8 @@ def main(argv):
                 accum_insn_histogram(trace_file, hist)
             elif which == 'flush':
                 accum_flush_histogram(trace_file, hist)
+            elif which == 'socketcall':
+                accum_socketcall_histogram(trace_file, hist)
             else:
                 usage(argv)
             trace_file.close()
