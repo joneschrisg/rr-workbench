@@ -72,7 +72,7 @@ SYS_socketcall = 102
 # names are truncated at 7 characters.
 SOCKETCALLS = ( '???', 'socket', 'bind', 'connect', 'listen', 'accept',
                 'getsckn', 'getpern', 'sktpair', 'send', 'recv',
-                'sendto', 'recvfrom', 'shutdwn', 'stskopt',
+                'sendto', 'rcvfrom', 'shutdwn', 'stskopt',
                 'gtskopt', 'sendmsg', 'recvmsg', 'accept4',
                 'rcvmmsg', 'sndmmsg' )
 def accum_socketcall_histogram(inf, hist={}):
@@ -81,10 +81,14 @@ def accum_socketcall_histogram(inf, hist={}):
             incr_histogram_item(hist, SOCKETCALLS[ev.ebx])
 
 def print_histogram(name, hist, outf=sys.stdout):
-    print>>outf, name +'\tcount'
-    print>>outf, '-------\t-----'
+    total = sum(hist.values())
+    print>>outf, name +'\tcount\t %'
+    print>>outf, '-------\t-----\t----'
     for k in sorted(hist, key=hist.get, reverse=True):
-        print>>outf, '%7s\t%6u'% (str(k), hist[k])
+        print>>outf, '%7s\t%6u\t%6.2f%%'% (str(k), hist[k],
+                                         100.0 * hist[k] / total)
+    print>>outf, '-------'
+    print>>outf, '%7s\t%6u\t100%%'% ('Total', total)
 
 def usage(argv):
     print>>sys.stderr, 'Usage:'
