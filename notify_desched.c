@@ -198,7 +198,7 @@ spam_io(size_t ticks)
 
 #if 0
         sched_yield();
-#elif 0
+#elif 1
         /* This is very very unlikely to desched us. */
         //write(fd, i ? "." : "\n", 1);
         write(STDOUT_FILENO, i ? "." : "\n", 1);
@@ -306,17 +306,20 @@ parent()
     int nr_observed_descheds = 0;
 
     child_counter = recv_fd(parent_socket, &child_counter_fdno);
+    
+    waitpid(p, NULL, 0);
+    if (ptrace(PTRACE_SETOPTIONS, p, 0, (void*)PTRACE_O_TRACESYSGOOD))
+        err(1, "ptrace(SETOPTIONS)");
 
     while (1) {
         int status;
 
+        debug("%d continue", p);
+        ptrace(PTRACE_CONT, p, 0, 0);
         waitpid(p, &status, 0);
         if (!dump_status(p, status)) {
             break;
         }
-
-        if (ptrace(PTRACE_SETOPTIONS, p, 0, (void*)PTRACE_O_TRACESYSGOOD))
-            err(1, "ptrace(SETOPTIONS)");
 
         if (WIFSTOPPED(status) && SIGIO == WSTOPSIG(status)) {
             uint64_t nr_desched;
@@ -331,10 +334,8 @@ parent()
 
             dump_siginfo_regs("  at first SIGIO: ", p, status);
 
-            exit(0);
-
             debug("skip SIGIO:");
-            ptrace(PTRACE_SYSCALL, p, 0, 0);
+            ptrace(PTRACE_CONT, p, 0, 0);
             waitpid(p, &status, 0);
             assert(WIFSTOPPED(status) && SIGIO == WSTOPSIG(status));
             dump_siginfo_regs("  after: ", p, status);
@@ -349,9 +350,6 @@ parent()
             waitpid(p, &status, 0);
             dump_siginfo_regs("  after: ", p, status);
         }
-
-        debug("%d continue", p);
-        ptrace(PTRACE_CONT, p, 0, 0);
     }
 
     printf("child finished; observed %d descheds\n", nr_observed_descheds);

@@ -1,7 +1,7 @@
 WORKDIR = $(CURDIR)
 
 RR_DIR ?= $(abspath ../rr)
-OBJDIR = $(RR_DIR)/obj
+OBJDIR = $(RR_DIR)/../obj
 RR ?= "$(OBJDIR)/bin/rr"
 
 # Current testing build made from hg commit 61c3c8b85563, git
