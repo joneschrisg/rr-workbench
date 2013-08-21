@@ -23,6 +23,7 @@ main(int argc, char** argv)
 
     for (i = 1; i < argc; ++i) {
         unsigned long status = strtoul(argv[i], NULL, 0);
+
         printf("0x%lx: ", status);
         if (WIFEXITED(status)) {
             printf("exited with code %d\n", WEXITSTATUS(status));
@@ -43,5 +44,6 @@ main(int argc, char** argv)
             printf("unknown status\n");
         }
     }
+
     return 0;
 }

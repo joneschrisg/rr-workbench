@@ -68,7 +68,7 @@ help::
 	@echo "  make clean"
 	@echo "    Remove all trace directories."
 clean:
-	rm -rf trace_* *.o *.so
+	rm -rf trace_* *.o *.so /tmp/rr-test-*
 
 
 .PHONY: debug
