@@ -164,7 +164,16 @@ update-firefox:
 		tar jxf firefox-*.tar.bz2 && \
 		unzip -q firefox-*.zip
 
-CFLAGS = -g -O0 -m32 -pthread
+CFLAGS = -Wall -Werror -g -O0 -m32 -pthread
+
+bad_syscall: bad_syscall.c
+
+launch: launch.c
+
+libtraceseccomp.so: Makefile traceseccomp.c
+	$(CC) $(CFLAGS) -fPIC -shared -o $@ traceseccomp.c
+
+regtrace: libtraceseccomp.so regtrace.c
 
 # XXX add me to rr tree?
 librrmon.so: rrmon.o
