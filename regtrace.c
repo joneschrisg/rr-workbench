@@ -24,6 +24,11 @@
 #define SYSCALL_PSEUDOSIG (0x80 | SIGTRAP)
 #define PTRACE_EVENT(_status) ((0xFF0000 & (_status)) >> 16)
 
+#ifndef PTRACE_O_TRACESECCOMP
+# define PTRACE_O_TRACESECCOMP 0x00000080
+# define PTRAC_EVENT_SECCOMP 8
+#endif
+
 #define log(msg, ...)                           \
     fprintf(stderr, msg "\n", ## __VA_ARGS__)
 
@@ -33,7 +38,7 @@
         abort();                                     \
     } while(0)
 
-static const int use_filter = 0;
+static const int use_filter = 1;
 
 static int
 trace(pid_t tid)
