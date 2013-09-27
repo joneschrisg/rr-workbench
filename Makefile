@@ -17,7 +17,8 @@ MOCHITEST_DIR = $(FF_DIR)/mochitest
 XPCSHELL_DIR = $(FF_DIR)/xpcshell
 
 #XRE_PATH ?= $(FF_DIR)/firefox
-XRE_PATH ?= ../ff-rr/dist/bin
+XRE_PATH ?= ../ff-prof/dist/bin
+#XRE_PATH ?= ../ff-dbg/dist/bin
 
 FF ?= "$(XRE_PATH)/firefox"
 #XPCSHELL ?= "$(FF_DIR)/bin/xpcshell"
@@ -170,10 +171,10 @@ bad_syscall: bad_syscall.c
 
 launch: launch.c
 
-libtraceseccomp.so: Makefile traceseccomp.c
-	$(CC) $(CFLAGS) -fPIC -shared -o $@ traceseccomp.c
+libseccomptrace.so: Makefile seccomptrace.c
+	$(CC) $(CFLAGS) -fPIC -shared -o $@ seccomptrace.c
 
-regtrace: libtraceseccomp.so regtrace.c
+regtrace: libseccomptrace.so regtrace.c
 
 # XXX add me to rr tree?
 librrmon.so: rrmon.o
