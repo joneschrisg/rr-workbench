@@ -1,0 +1,21 @@
+# Flags set for targeting x86.
+export CROSS_COMPILE=1
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig
+
+CC="ccache gcc -m32"
+CXX="ccache g++ -m32"
+AR=ar
+ac_add_options --target=i686-pc-linux
+
+# Normal build flags.  These make a prof browser build.
+ac_add_options --enable-application=browser
+mk_add_options MOZ_MAKE_FLAGS="-s -j6"
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/../ff-prof
+
+ac_add_options --disable-gstreamer
+
+ac_add_options --enable-profiling
+
+#ac_add_options --enable-ipdl-tests
+#ac_add_options --enable-valgrind
+#ac_add_options --enable-crashreporter

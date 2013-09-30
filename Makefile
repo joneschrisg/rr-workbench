@@ -26,8 +26,8 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 
 DEBUG ?= replay
 #RECORD ?= record
-RECORD ?= record -b
-REPLAY ?= replay --autopilot
+RECORD ?= -v record -b
+REPLAY ?= -v replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args="$(RECORD)"
 
@@ -175,6 +175,8 @@ libseccomptrace.so: Makefile seccomptrace.c
 	$(CC) $(CFLAGS) -fPIC -shared -o $@ seccomptrace.c
 
 regtrace: libseccomptrace.so regtrace.c
+
+status2text: status2text.c
 
 # XXX add me to rr tree?
 librrmon.so: rrmon.o
