@@ -4,8 +4,8 @@ RR_DIR ?= $(abspath ../rr)
 OBJDIR = $(RR_DIR)/../obj
 RR ?= "$(OBJDIR)/bin/rr"
 
-# Current testing build made from hg commit 61c3c8b85563, git
-# 6d609cfea6cfbaa867266954471db5f455ae35d1.
+# Current testing build made from git sha1
+# 6462f0bb0d18a650e217aae1dba1f7549236a712, hg commit ???
 FF_DIR ?= .ff
 # XXX: sigh, no debug nightly builds.  Nor symbolic links to "latest"
 # or something.  So this is an arbitrarily-chosen, healthy-looking
