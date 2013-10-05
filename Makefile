@@ -85,7 +85,7 @@ help::
 	@echo "  make record-firefox"
 	@echo "    Record firefox running standalone."
 record-firefox:
-	$(RR) $(RECORD) $(FF) -no-remote -P garbage
+	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
 
 
 .PHONY: record-mochitests
@@ -170,6 +170,8 @@ CFLAGS = -Wall -Werror -g -O0 -m32 -pthread
 bad_syscall: bad_syscall.c
 
 launch: launch.c
+
+lcmp: lcmp.c
 
 libseccomptrace.so: Makefile seccomptrace.c
 	$(CC) $(CFLAGS) -fPIC -shared -o $@ seccomptrace.c
