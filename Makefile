@@ -25,7 +25,6 @@ FF ?= "$(XRE_PATH)/firefox"
 XPCSHELL = $(XRE_PATH)/xpcshell
 
 DEBUG ?= replay
-#RECORD ?= record
 RECORD ?= -v record -b
 REPLAY ?= -v replay --autopilot
 
@@ -64,6 +63,10 @@ help::
 	@echo
 
 
+.PHONY: cycle
+cycle: clean record-firefox replay
+
+
 .PHONY: clean
 help::
 	@echo "  make clean"
@@ -85,7 +88,9 @@ help::
 	@echo "  make record-firefox"
 	@echo "    Record firefox running standalone."
 record-firefox:
-	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
+#	$(RR) $(RECORD) $(FF) -no-remote -P garbage
+	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
+#	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
 
 
 .PHONY: record-mochitests
