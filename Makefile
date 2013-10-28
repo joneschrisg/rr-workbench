@@ -15,6 +15,8 @@ XRE_PATH ?= $(FF_OBJDIR)/dist/bin
 FF ?= "$(XRE_PATH)/firefox"
 XPCSHELL = $(XRE_PATH)/xpcshell
 
+TEST_LOG = $(WORKDIR)/$@.log
+
 DEBUG ?= replay
 RECORD ?= -v record -b
 REPLAY ?= -v replay --autopilot
@@ -23,6 +25,9 @@ DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
 
 TRACE ?= trace_0
 
+ifdef TEST_PATH
+TEST_PATH_ARG = TEST_PATH="$(TEST_PATH)"
+endif
 
 # Shortcut for what you're currently working on, to save typing
 default: clean record-bug-845190
@@ -81,36 +86,51 @@ record-firefox:
 TEST_PATH = uriloader/exthandler/tests/mochitest
 
 
-.PHONY: record-mochitests
+.PHONY: record-mochitest
 help::
-	@echo "  make [TEST_PATH=dir] record-mochitests"
+	@echo "  make [TEST_PATH=dir] record-mochitest"
 	@echo "    Record firefox running the mochitest suite, optionally"
 	@echo "    just the TEST_PATH tests."
 
-MOCHITEST_LOG = $(WORKDIR)/$@.log
-record-mochitests:
+record-mochitest:
 # The mochitest harness helpfully chdir()s to a tmp directory and then
 # blows it away when the test suite finishes.  This blows away our
 # recorded trace as well.  So explicitly save them to the workbench
 # directory.
-	rm -f $(MOCHITEST_LOG)
-	cd $(FF_OBJDIR) && \
+	rm -f $(TEST_LOG)
 	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="--log-file=$(MOCHITEST_LOG) $(DBG)" \
-		TEST_PATH="$(TEST_PATH)" \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		$(TEST_PATH_ARG) \
 		mochitest-plain
 
 
-.PHONY: record-reftests
+.PHONY: record-crashtest
 help::
-	@echo "  make [TEST_PATH=dir] record-reftests"
+	@echo "  make [TEST_PATH=dir] record-crashtest"
+	@echo "    Record firefox running the crashtest suite, optionally"
+	@echo "    just the TEST_PATH tests."
+
+record-crashtest:
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		$(TEST_PATH_ARG) \
+		crashtest
+
+
+.PHONY: record-reftest
+help::
+	@echo "  make [TEST_PATH=dir] record-reftest"
 	@echo "    Record firefox running the reftest suite, optionally"
 	@echo "    just the TEST_PATH tests."
 
-record-reftests:
+record-reftest:
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		$(TEST_PATH_ARG) \
+		reftest
 #	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file://$(abspath $(FF_SRCDIR)/$(TEST_PATH)/reftest.list)
 #	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
-	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
+#	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
 #	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
 #	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
 #	$(RR) $(RECORD) -c250 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
