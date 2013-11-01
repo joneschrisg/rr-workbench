@@ -10,6 +10,7 @@ RR ?= "$(OBJDIR)/bin/rr"
 # 6462f0bb0d18a650e217aae1dba1f7549236a712, hg commit ???
 FF_SRCDIR = ../mozilla-central
 FF_OBJDIR = ../ff-prof
+#FF_OBJDIR = ../ff-dbg
 XRE_PATH ?= $(FF_OBJDIR)/dist/bin
 
 FF ?= "$(XRE_PATH)/firefox"
@@ -18,7 +19,7 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 TEST_LOG = $(WORKDIR)/$@.log
 
 DEBUG ?= replay
-RECORD ?= -v record -b
+RECORD ?= record -b
 REPLAY ?= -v replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
@@ -28,6 +29,15 @@ TRACE ?= trace_0
 ifdef TEST_PATH
 TEST_PATH_ARG = TEST_PATH="$(TEST_PATH)"
 endif
+
+
+PREFS = \
+	--setpref=javascript.options.asmjs=false \
+	--setpref=javascript.options.baselinejit.chrome=false \
+	--setpref=javascript.options.baselinejit.content=false \
+	--setpref=javascript.options.ion.chrome=false \
+	--setpref=javascript.options.ion.content=false \
+	--setpref=javascript.options.ion.parallel_compilation=false
 
 # Shortcut for what you're currently working on, to save typing
 default: clean record-bug-845190
@@ -56,7 +66,7 @@ help::
 
 
 .PHONY: cycle
-cycle: clean record-firefox replay
+cycle: clean record-reftest replay
 
 
 .PHONY: clean
@@ -99,7 +109,7 @@ record-mochitest:
 # directory.
 	rm -f $(TEST_LOG)
 	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
 		$(TEST_PATH_ARG) \
 		mochitest-plain
 
@@ -111,10 +121,11 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-crashtest:
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+#	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		crashtest
+	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/content/media/test/crashtests/crashtests.list
 
 
 .PHONY: record-reftest
@@ -124,13 +135,13 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-reftest:
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+#	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		reftest
 #	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file://$(abspath $(FF_SRCDIR)/$(TEST_PATH)/reftest.list)
 #	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
-#	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
+	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
 #	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
 #	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
 #	$(RR) $(RECORD) -c250 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
