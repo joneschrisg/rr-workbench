@@ -19,7 +19,7 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 TEST_LOG = $(WORKDIR)/$@.log
 
 DEBUG ?= replay
-RECORD ?= record -b
+RECORD ?= record
 REPLAY ?= -v replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
@@ -30,8 +30,7 @@ ifdef TEST_PATH
 TEST_PATH_ARG = TEST_PATH="$(TEST_PATH)"
 endif
 
-
-PREFS = \
+#PREFS = \
 	--setpref=javascript.options.asmjs=false \
 	--setpref=javascript.options.baselinejit.chrome=false \
 	--setpref=javascript.options.baselinejit.content=false \
@@ -93,9 +92,6 @@ record-firefox:
 	$(RR) $(RECORD) $(FF) -no-remote -P garbage
 
 
-TEST_PATH = uriloader/exthandler/tests/mochitest
-
-
 .PHONY: record-mochitest
 help::
 	@echo "  make [TEST_PATH=dir] record-mochitest"
@@ -114,6 +110,24 @@ record-mochitest:
 		mochitest-plain
 
 
+.PHONY: record-mochitest-chrome
+help::
+	@echo "  make [TEST_PATH=dir] record-mochitest-chrome"
+	@echo "    Record firefox running the mochitest-chrome suite,"
+	@echo "    optionally just the TEST_PATH tests."
+
+record-mochitest-chrome:
+# The mochitest harness helpfully chdir()s to a tmp directory and then
+# blows it away when the test suite finishes.  This blows away our
+# recorded trace as well.  So explicitly save them to the workbench
+# directory.
+	rm -f $(TEST_LOG)
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
+		$(TEST_PATH_ARG) \
+		mochitest-chrome
+
+
 .PHONY: record-crashtest
 help::
 	@echo "  make [TEST_PATH=dir] record-crashtest"
@@ -121,12 +135,13 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-crashtest:
-#	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
-		$(TEST_PATH_ARG) \
+	rm -f $(TEST_LOG)
+	TEST_PATH=$(TEST_PATH) \
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
 		crashtest
-	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/content/media/test/crashtests/crashtests.list
 
+#	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/$(TEST_PATH)
 
 .PHONY: record-reftest
 help::
