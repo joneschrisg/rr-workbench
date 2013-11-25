@@ -7,7 +7,7 @@ OBJDIR = $(RR_DIR)/../obj
 RR ?= "$(OBJDIR)/bin/rr"
 
 # Current testing build made from git sha1
-# 6462f0bb0d18a650e217aae1dba1f7549236a712, hg commit ???
+# c72f46ce99102d6136d5d0e2c1d610d2f3a67692, hg commit ???
 FF_SRCDIR = ../mozilla-central
 FF_OBJDIR = ../ff-prof
 #FF_OBJDIR = ../ff-dbg
@@ -19,7 +19,8 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 TEST_LOG = $(WORKDIR)/$@.log
 
 DEBUG ?= replay
-RECORD ?= record
+#RECORD ?= record
+RECORD ?= record -b
 REPLAY ?= -v replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
@@ -30,7 +31,7 @@ ifdef TEST_PATH
 TEST_PATH_ARG = TEST_PATH="$(TEST_PATH)"
 endif
 
-#PREFS = \
+PREFS = \
 	--setpref=javascript.options.asmjs=false \
 	--setpref=javascript.options.baselinejit.chrome=false \
 	--setpref=javascript.options.baselinejit.content=false \
@@ -214,6 +215,9 @@ status2text: status2text.c
 librrmon.so: rrmon.o
 	$(CC) $(CFLAGS) -shared -o $@ $<
 
+# XXX add me to rr tree
+libpathlogging.so: Makefile path_logging.c
+	$(CC) $(CFLAGS) -fPIC -shared -o $@ path_logging.c
 
 ##-----------------------------------------------------------------------------
 ## Temporariily obsolete code for running FF from nightly builds.
