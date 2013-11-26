@@ -18,7 +18,8 @@
 
 #ifdef DEBUGTAG
 #  define DEBUG(msg, ...)						\
-	fprintf(stderr, "[" DEBUGTAG "] " msg "\n", ## __VA_ARGS__)
+	fprintf(stderr, "[" DEBUGTAG "][%ld] " msg "\n",		\
+		syscall(SYS_gettid), ## __VA_ARGS__)
 #else
 #  define DEBUG(msg, ...)
 #endif
@@ -38,27 +39,13 @@ static pthread_key_t finish_buffer_key;
 
 static __thread struct path_records* record_buffer;
 
-static pid_t sys_gettid(void)
-{
-	return syscall(SYS_gettid);
-}
-
 static void flush_buffer(struct path_records* buf)
 {
+	DEBUG("Flushing buffer");
+
 	write(RR_MAGIC_SAVE_DATA_FD, &buf->recs,
 	      buf->len * sizeof(buf->recs[0]));
 	buf->len = 0;
-}
-
-static void finish_buffer(void* pbuf)
-{
-	struct path_records* buf = pbuf;
-
-	assert(buf == record_buffer);
-	DEBUG("Finishing task %d", sys_gettid());
-
-	flush_buffer(buf);
-	free(buf);
 }
 
 static void drop_buffer(void)
@@ -67,21 +54,42 @@ static void drop_buffer(void)
 	pthread_setspecific(finish_buffer_key, NULL);
 }
 
+static void finish_buffer(void* pbuf)
+{
+	struct path_records* buf = pbuf;
+
+	assert(buf == record_buffer);
+	DEBUG("Finishing buffer");
+
+	flush_buffer(buf);
+	free(buf);
+	drop_buffer();
+}
+
+static void finish_main_thread_buffer_hack(void)
+{
+	struct path_records* buf = record_buffer;
+	if (buf) {
+		finish_buffer(buf);
+	}
+}
+
 static void init_process(void)
 {
 	pthread_atfork(NULL, NULL, drop_buffer);
 	pthread_key_create(&finish_buffer_key, finish_buffer);
+	atexit(finish_main_thread_buffer_hack);
 }
 
 static struct path_records* ensure_thread_init(void)
 {
-	struct path_records* buf;
+	struct path_records* buf = record_buffer;
 
-	if (record_buffer) {
-		return record_buffer;
+	if (buf) {
+		return buf;
 	}
 
-	DEBUG("Initializing task %d", sys_gettid());
+	DEBUG("Initializing buffer");
 
 	pthread_once(&init_process_once, init_process);
 
@@ -94,12 +102,12 @@ static struct path_records* ensure_thread_init(void)
 	return record_buffer;
 }
 
-void llvm_increment_path_count(uint32_t fn, uint32_t path)
+void llvm_increment_path_count(int8_t* fn, uint32_t path)
 {
 	struct path_records* buf = ensure_thread_init();
 	struct path_record* rec = &buf->recs[buf->len++];
 
-	rec->fn = (void*)fn;
+	rec->fn = fn;
 	rec->path = path;
 
 	DEBUG("Retired (%p, %d)", rec->fn, rec->path);
@@ -109,7 +117,7 @@ void llvm_increment_path_count(uint32_t fn, uint32_t path)
 	}
 }
 
-void llvm_decrement_path_count (uint32_t fn, uint32_t path)
+void llvm_decrement_path_count (int8_t* fn, uint32_t path)
 {
 	/* ignored */
 }

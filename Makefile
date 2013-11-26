@@ -215,6 +215,21 @@ status2text: status2text.c
 librrmon.so: rrmon.o
 	$(CC) $(CFLAGS) -shared -o $@ $<
 
+LLVM_PLUGIN_RELDIR = lib/Transforms/PathLogging
+LLVM_SRCDIR = $(HOME)/src/llvm-clang/llvm
+LLVM_OBJDIR = $(HOME)/src/llvm-clang/build
+
+paths: Makefile PathLogging_plugin libpathlogging.so paths.c
+	clang -O1 -Xclang -load -Xclang $(WORKDIR)/PathLogging.so \
+		-pthread paths.c -o paths \
+		-Wl,-rpath -Wl,$(WORKDIR) -L $(WORKDIR) -lpathlogging
+
+.PHONY: PathLogging_plugin
+PathLogging_plugin:
+	touch $(LLVM_SRCDIR)/$(LLVM_PLUGIN_RELDIR)/PathLogging.cpp
+	make -C $(LLVM_OBJDIR)/$(LLVM_PLUGIN_RELDIR)
+	ln -fs $(LLVM_OBJDIR)/Release+Asserts/lib/PathLogging.so PathLogging.so
+
 # XXX add me to rr tree
 libpathlogging.so: Makefile path_logging.c
 	$(CC) $(CFLAGS) -pthread -fPIC -shared -o $@ path_logging.c
