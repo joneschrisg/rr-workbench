@@ -11,8 +11,7 @@
 #include <syscall.h>
 #include <unistd.h>
 
-/* XXX split me out */
-#define RR_MAGIC_SAVE_DATA_FD (-42)
+#include <rr/rr.h>
 
 #define PATH_RECORD_BUFFER_SIZE (1 << 10)
 
@@ -39,12 +38,17 @@ static pthread_key_t finish_buffer_key;
 
 static __thread struct path_records* record_buffer;
 
+static int sys_write(int fd, void* buf, size_t len)
+{
+	return syscall(SYS_write, fd, buf, len);
+}
+
 static void flush_buffer(struct path_records* buf)
 {
 	DEBUG("Flushing buffer");
 
-	write(RR_MAGIC_SAVE_DATA_FD, &buf->recs,
-	      buf->len * sizeof(buf->recs[0]));
+	sys_write(RR_MAGIC_SAVE_DATA_FD, &buf->recs,
+		  buf->len * sizeof(buf->recs[0]));
 	buf->len = 0;
 }
 

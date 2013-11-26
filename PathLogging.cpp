@@ -1247,21 +1247,21 @@ void PathProfiler::insertCounterIncrement(Value* incValue,
     // Store back in to the array
     new StoreInst(newPc, pcPointer, insertPoint);
   } else { // Counter increment for hash
+
+#if 0
+
     std::vector<Value*> args(2);
-//    args[0] = ConstantInt::get(Type::getInt32Ty(*Context),
-//                               currentFunctionNumber);
-
-
     Type* voidPtr = TypeBuilder<types::i<8>*, true>::get(*Context);
+
     args[0] = ConstantExpr::getBitCast(&F, voidPtr);
-
-
-
     args[1] = incValue;
 
     CallInst::Create(
       increment ? llvmIncrementHashFunction : llvmDecrementHashFunction,
       args, "", insertPoint);
+
+#endif
+
   }
 }
 
@@ -1283,7 +1283,14 @@ void PathProfiler::insertInstrumentationStartingAt(BLInstrumentationEdge* edge,
   DEBUG(dbgs() << "\nInstrumenting edge: " << (*edge) << "\n");
 
   // create a new node for this edge's instrumentation
-  splitCritical(edge, dag);
+  if (!splitCritical(edge, dag)) {
+
+
+      cerr << "WARNING: can't instrument " << F->getName().str() << endl;
+
+
+      return;
+  }
 
   BLInstrumentationNode* sourceNode = (BLInstrumentationNode*)edge->getSource();
   BLInstrumentationNode* targetNode = (BLInstrumentationNode*)edge->getTarget();
@@ -1639,15 +1646,19 @@ bool PathProfiler::splitCritical(BLInstrumentationEdge* edge,
   if(sourceBlock == NULL || targetBlock == NULL
      || sourceNode->getNumberSuccEdges() <= 1
      || targetNode->getNumberPredEdges() == 1 ) {
-    return(false);
+    return true;
   }
 
   TerminatorInst* terminator = sourceBlock->getTerminator();
 
+
+  if (isa<IndirectBrInst>(terminator))
+      return false;
+
+
   if( SplitCriticalEdge(terminator, succNum, this, false)) {
     BasicBlock* newBlock = terminator->getSuccessor(succNum);
     dag->splitUpdate(edge, newBlock);
-    return(true);
-  } else
-    return(false);
+  }
+  return true;
 }

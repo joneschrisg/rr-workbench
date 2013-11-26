@@ -232,7 +232,8 @@ PathLogging_plugin:
 
 # XXX add me to rr tree
 libpathlogging.so: Makefile path_logging.c
-	$(CC) $(CFLAGS) -pthread -fPIC -shared -o $@ path_logging.c
+	$(CC) $(CFLAGS) -I $(RR_DIR)/include -pthread -fPIC -shared \
+		-o $@ path_logging.c
 
 ##-----------------------------------------------------------------------------
 ## Temporariily obsolete code for running FF from nightly builds.
