@@ -1247,9 +1247,6 @@ void PathProfiler::insertCounterIncrement(Value* incValue,
     // Store back in to the array
     new StoreInst(newPc, pcPointer, insertPoint);
   } else { // Counter increment for hash
-
-#if 0
-
     std::vector<Value*> args(2);
     Type* voidPtr = TypeBuilder<types::i<8>*, true>::get(*Context);
 
@@ -1259,9 +1256,6 @@ void PathProfiler::insertCounterIncrement(Value* incValue,
     CallInst::Create(
       increment ? llvmIncrementHashFunction : llvmDecrementHashFunction,
       args, "", insertPoint);
-
-#endif
-
   }
 }
 
@@ -1286,7 +1280,7 @@ void PathProfiler::insertInstrumentationStartingAt(BLInstrumentationEdge* edge,
   if (!splitCritical(edge, dag)) {
 
 
-      cerr << "WARNING: can't instrument " << F->getName().str() << endl;
+      cerr << "WARNING: can't instrument " << F.getName().str() << endl;
 
 
       return;
@@ -1568,28 +1562,25 @@ bool PathProfiler::runOnModule(Module &M) {
   }
 #endif
 
+  GlobalValue* gv;
 
   llvmIncrementHashFunction = M.getOrInsertFunction(
     "llvm_increment_path_count",
     Type::getVoidTy(*Context), // return type
-//    Type::getInt32Ty(*Context), // function number
-
     TypeBuilder<types::i<8>*, true>::get(*Context),
-
     Type::getInt32Ty(*Context), // path number
     NULL );
+  gv = dyn_cast<GlobalValue>(llvmIncrementHashFunction);
+  gv->setLinkage(GlobalValue::ExternalWeakLinkage);
 
   llvmDecrementHashFunction = M.getOrInsertFunction(
     "llvm_decrement_path_count",
     Type::getVoidTy(*Context), // return type
-//    Type::getInt32Ty(*Context), // function number
-
-
     TypeBuilder<types::i<8>*, true>::get(*Context),
-
-
     Type::getInt32Ty(*Context), // path number
     NULL );
+  gv = dyn_cast<GlobalValue>(llvmDecrementHashFunction);
+  gv->setLinkage(GlobalValue::ExternalWeakLinkage);
 
   std::vector<Constant*> ftInit;
   unsigned functionNumber = 0;

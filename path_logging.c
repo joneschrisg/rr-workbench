@@ -1,6 +1,6 @@
 /* -*- Mode: C; tab-width: 8; c-basic-offset: 8; indent-tabs-mode: t; -*- */
 
-#define DEBUGTAG "PathLogging"
+//#define DEBUGTAG "PathLogging"
 
 #include <assert.h>
 #include <inttypes.h>
