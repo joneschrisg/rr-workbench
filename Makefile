@@ -221,9 +221,8 @@ LLVM_OBJDIR = $(HOME)/src/llvm-clang/build
 
 paths: Makefile PathLogging_plugin libpathlogging.so paths.c
 	clang -O1 -Xclang -load -Xclang $(WORKDIR)/PathLogging.so \
-		-pthread paths.c -o paths
-
-#		-Wl,-rpath -Wl,$(WORKDIR) -L $(WORKDIR) -lpathlogging
+		-pthread paths.c -o paths \
+		-Wl,-rpath -Wl,$(WORKDIR) -L $(WORKDIR) -lpathlogging
 
 .PHONY: PathLogging_plugin
 PathLogging_plugin:

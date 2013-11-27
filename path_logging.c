@@ -30,13 +30,15 @@ struct path_record {
 
 struct path_records {
 	struct path_record recs[PATH_RECORD_BUFFER_SIZE];
-	ssize_t len;
+	ssize_t len : 30;
+	ssize_t ready : 1;
+	ssize_t finished : 1;
 };
 
 static pthread_once_t init_process_once = PTHREAD_ONCE_INIT;
 static pthread_key_t finish_buffer_key;
 
-static __thread struct path_records* record_buffer;
+static __thread struct path_records record_buffer;
 
 static int sys_write(int fd, void* buf, size_t len)
 {
@@ -54,7 +56,9 @@ static void flush_buffer(struct path_records* buf)
 
 static void drop_buffer(void)
 {
-	record_buffer = NULL;
+	struct path_records* buf = &record_buffer;
+
+	buf->finished = 1;
 	pthread_setspecific(finish_buffer_key, NULL);
 }
 
@@ -62,18 +66,15 @@ static void finish_buffer(void* pbuf)
 {
 	struct path_records* buf = pbuf;
 
-	assert(buf == record_buffer);
 	DEBUG("Finishing buffer");
-
 	flush_buffer(buf);
-	free(buf);
 	drop_buffer();
 }
 
 static void finish_main_thread_buffer_hack(void)
 {
-	struct path_records* buf = record_buffer;
-	if (buf) {
+	struct path_records* buf = &record_buffer;
+	if (buf->ready && !buf->finished) {
 		finish_buffer(buf);
 	}
 }
@@ -87,26 +88,21 @@ static void init_process(void)
 
 static struct path_records* ensure_thread_init(void)
 {
-	struct path_records* buf = record_buffer;
+	struct path_records* buf = &record_buffer;
 
-	if (buf) {
+	if (buf->ready) {
 		return buf;
 	}
 
 	DEBUG("Initializing buffer");
-
 	pthread_once(&init_process_once, init_process);
-
-	buf = calloc(1, sizeof(*buf));
 	pthread_setspecific(finish_buffer_key, buf);
-	record_buffer = buf;
+	buf->ready = 1;
 
-	assert(pthread_getspecific(finish_buffer_key) == record_buffer);
-
-	return record_buffer;
+	return buf;
 }
 
-void llvm_increment_path_count(int8_t* fn, uint32_t path)
+void llvm_increment_path_count(int8_t* fn, int32_t path)
 {
 	struct path_records* buf = ensure_thread_init();
 	struct path_record* rec = &buf->recs[buf->len++];
@@ -121,7 +117,7 @@ void llvm_increment_path_count(int8_t* fn, uint32_t path)
 	}
 }
 
-void llvm_decrement_path_count (int8_t* fn, uint32_t path)
+void llvm_decrement_path_count (int8_t* fn, int32_t path)
 {
 	/* ignored */
 }
