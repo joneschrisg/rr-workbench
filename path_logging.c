@@ -9,11 +9,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <syscall.h>
+#include <sys/mman.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include <rr/rr.h>
 
-#define PATH_RECORD_BUFFER_SIZE (1 << 10)
+#define PAGE_SIZE 4096
+#define PAGE_MASK (~(PAGE_SIZE - 1))
+#define PAGE_ALIGN(x) ((x + PAGE_SIZE - 1) & PAGE_MASK)
+
+#define PATH_RECORD_BUFFER_SIZE (1 << 15)
 
 #ifdef DEBUGTAG
 #  define DEBUG(msg, ...)						\
@@ -31,14 +37,13 @@ struct path_record {
 struct path_records {
 	struct path_record recs[PATH_RECORD_BUFFER_SIZE];
 	ssize_t len : 30;
-	ssize_t ready : 1;
 	ssize_t finished : 1;
 };
 
 static pthread_once_t init_process_once = PTHREAD_ONCE_INIT;
 static pthread_key_t finish_buffer_key;
 
-static __thread struct path_records record_buffer;
+static __thread struct path_records* record_buffer;
 
 static int sys_write(int fd, void* buf, size_t len)
 {
@@ -56,10 +61,11 @@ static void flush_buffer(struct path_records* buf)
 
 static void drop_buffer(void)
 {
-	struct path_records* buf = &record_buffer;
+	struct path_records* buf = record_buffer;
 
-	buf->finished = 1;
 	pthread_setspecific(finish_buffer_key, NULL);
+	record_buffer = NULL;
+	munmap(buf, PAGE_ALIGN(sizeof(*buf)));
 }
 
 static void finish_buffer(void* pbuf)
@@ -73,8 +79,8 @@ static void finish_buffer(void* pbuf)
 
 static void finish_main_thread_buffer_hack(void)
 {
-	struct path_records* buf = &record_buffer;
-	if (buf->ready && !buf->finished) {
+	struct path_records* buf = record_buffer;
+	if (buf) {
 		finish_buffer(buf);
 	}
 }
@@ -88,16 +94,20 @@ static void init_process(void)
 
 static struct path_records* ensure_thread_init(void)
 {
-	struct path_records* buf = &record_buffer;
+	struct path_records* buf = record_buffer;
 
-	if (buf->ready) {
+	if (buf) {
 		return buf;
 	}
 
 	DEBUG("Initializing buffer");
 	pthread_once(&init_process_once, init_process);
+
+	buf = mmap(NULL, PAGE_ALIGN(sizeof(*buf)),
+		   PROT_READ | PROT_WRITE,
+		   MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	record_buffer = buf;
 	pthread_setspecific(finish_buffer_key, buf);
-	buf->ready = 1;
 
 	return buf;
 }

@@ -74,7 +74,7 @@ help::
 	@echo "  make clean"
 	@echo "    Remove all trace directories."
 clean:
-	rm -rf trace_* *.o *.so /tmp/rr-test-*
+	rm -rf trace_* *.o /tmp/rr-test-*
 
 
 .PHONY: debug
@@ -220,7 +220,7 @@ LLVM_SRCDIR = $(HOME)/src/llvm-clang/llvm
 LLVM_OBJDIR = $(HOME)/src/llvm-clang/build
 
 paths: Makefile PathLogging_plugin libpathlogging.so paths.c
-	clang -O1 -Xclang -load -Xclang $(WORKDIR)/PathLogging.so \
+	clang -g -O2 -Xclang -load -Xclang $(WORKDIR)/PathLogging.so \
 		-pthread paths.c -o paths \
 		-Wl,-rpath -Wl,$(WORKDIR) -L $(WORKDIR) -lpathlogging
 
@@ -232,8 +232,22 @@ PathLogging_plugin:
 
 # XXX add me to rr tree
 libpathlogging.so: Makefile path_logging.c
-	$(CC) $(CFLAGS) -I $(RR_DIR)/include -pthread -fPIC -shared \
+	$(CC) -g $(CFLAGS) -I $(RR_DIR)/include -pthread -fPIC -shared \
 		-o $@ path_logging.c
+
+
+mod: Makefile mod.cc
+	clang++ -g -O2 -Xclang -load -Xclang $(WORKDIR)/PathLogging.so \
+		-pthread -o $@ mod.cc \
+		-Wl,-rpath -Wl,$(WORKDIR) -L $(WORKDIR) -lpathlogging -ldl \
+		-Wl,--whole-archive $(FF_OBJDIR)/mozglue/build/libmozglue.a \
+		-Wl,--no-whole-archive -rdynamic -ldl
+
+libctor.so: Makefile ctor.cc
+	clang++ -g -O2 -Xclang -load -Xclang $(WORKDIR)/PathLogging.so \
+		-pthread -fPIC -shared -o $@ ctor.cc \
+		-Wl,-rpath -Wl,$(WORKDIR) -L $(WORKDIR) -lpathlogging
+
 
 ##-----------------------------------------------------------------------------
 ## Temporariily obsolete code for running FF from nightly builds.
