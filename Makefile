@@ -19,8 +19,8 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 TEST_LOG = $(WORKDIR)/$@.log
 
 DEBUG ?= replay
-#RECORD ?= record
 RECORD ?= record -b
+#RECORD ?= record -n
 REPLAY ?= -v replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
@@ -85,6 +85,14 @@ debug:
 	$(RR) $(DEBUG) $(TRACE)
 
 
+.PHONY: dif
+help::
+	@echo "  make dif"
+	@echo "    Show a dif of the rr source dir.."
+dif:
+	cd $(RR_DIR) && grep -rn '\/\*\* \*\/' src/* || git dif
+
+
 .PHONY: record-firefox
 help::
 	@echo "  make record-firefox"
@@ -105,9 +113,16 @@ record-mochitest:
 # recorded trace as well.  So explicitly save them to the workbench
 # directory.
 	rm -f $(TEST_LOG)
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+#	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+#		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
+#		$(TEST_PATH_ARG) \
+#		mochitest-plain
+
+	LD_PRELOAD="/home/cjones/rpmbuild/BUILD/glibc-2.17-c758a686/vanilla-obj/libc.so:/home/cjones/rpmbuild/BUILD/glibc-2.17-c758a686/vanilla-obj/nptl/libpthread.so" \
+	_RR_TRACE_DIR="$(WORKDIR)" \
+	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
-		$(TEST_PATH_ARG) \
+		TEST_PATH="dom/tests/mochitest/ajax/jquery" \
 		mochitest-plain
 
 

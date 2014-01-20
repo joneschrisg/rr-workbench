@@ -19,7 +19,7 @@
 #define PAGE_MASK (~(PAGE_SIZE - 1))
 #define PAGE_ALIGN(x) ((x + PAGE_SIZE - 1) & PAGE_MASK)
 
-#define PATH_RECORD_BUFFER_SIZE (1 << 15)
+#define PATH_RECORD_BUFFER_SIZE (1 << 5)
 
 #ifdef DEBUGTAG
 #  define DEBUG(msg, ...)						\
