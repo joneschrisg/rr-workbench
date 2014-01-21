@@ -34,41 +34,35 @@ size_t strlen_wrapper(const char* s)
     return strlen(s);
 }
 
-void check_result(long edi)
-{
-//    INLINE_SYSCALL (write, 3, -42, &edi, sizeof(edi));
-    if (0 == edi) {
-        char msg[1024];
-        int len = sprintf(msg, "edi should have been non-zero, but was 0x%lx\n",
-                          edi);
-        write(1, msg, len);
-        abort();
-    }
-}
-
 int _IO_fputs (const char *str, _IO_FILE *fp)
 {
   __asm__(                      /* str = 4(%esp) */
       "push %ebp\n\t"           /* str = 8(%esp) */
       "movl %esp, %ebp\n\t"     /* str = 8(%ebp) */
-      "push %edi\n\t"
 
+      /* Save regs to compare before calling strlen(). */
       "movl $0xe0, %eax\n\t"
       "int $0x80\n\t"           /* syscall(SYS_gettid) */
 
-      "movl $0xdeadd00d, %edi\n\t" /* enable magic BB tracking */
-
       "movl 0x8(%ebp), %eax\n\t" /* %eax = str */
-      "push %eax\n\t"
+      "push %ebx\n\t"            /* save instrumentation regs */
+      "push %esi\n\t"
+      "push %edi\n\t"
+      "push %ebp\n\t"
+
+      "push %eax\n\t"            /* push |str| arg */
+      "movl $0xdeadd00d, %edi\n\t" /* enable magic BB tracking */
       "call strlen_wrapper\n\t" /* %eax = strlen(str) */
       "addl $0x4, %esp\n\t"
 
-      "push %edi\n\t"
-      "call check_result\n\t"   /* check_result(%edi) */
-      "addl $0x4, %esp\n\t"
-
+      /* Save regs for post-strlen() compare. */
       "movl $0x14, %eax\n\t"
       "int $0x80\n\t"           /* syscall(SYS_getpid) */
+
+      "pop %ebp\n\t"            /* restore instrumentation regs */
+      "pop %edi\n\t"
+      "pop %esi\n\t"
+      "pop %ebx\n\t"
 
       "movl 0xc(%ebp), %eax\n\t" /* push fp */
       "push %eax\n\t"
@@ -77,8 +71,6 @@ int _IO_fputs (const char *str, _IO_FILE *fp)
       "call _IO_fputs_rest\n\t" /* %eax = _IO_fputs_rest(str, fp) */
       "addl $0x8, %esp\n\t"
 
-
-      "pop %edi\n\t"
       "pop %ebp\n\t"
       );
 }

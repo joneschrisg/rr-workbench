@@ -55,12 +55,18 @@ ENTRY (BP_SYM (strlen))
         cmpl $0xdeadd00d, %edi
         je strlen_instr
 
+        push %ebx
+        push %esi
         push %edi
+        push %ebp
         push $0x0               /* did_instrument = false */
         jmp strlen_begin_impl
 
 strlen_instr:
-        xorl %edi, %edi         /* edi <- 0 */  
+        xorl %ebx, %ebx         /* L0_counter = 0 */
+        xorl %esi, %esi         /* L1_counter = 0 */
+        xorl %edi, %edi         /* L2_counter = 0 */
+        xorl %ebp, %ebp         /* L3_counter = 0 */
         push $0x1               /* did_instrument = true */
 
 strlen_begin_impl:
@@ -90,7 +96,7 @@ strlen_begin_impl:
 
 L(0):
 #if BB_INST
-	orl $0x1, %edi
+	incl %ebx               /* ++L0_counter */
 #endif
         
 
@@ -126,7 +132,7 @@ L(0):
 
 L(1):   
 #if BB_INST
-	orl $0x2, %edi
+	incl %esi               /* ++L1_counter */
 #endif
         
         
@@ -196,7 +202,7 @@ L(1):
 
 L(3):
 #if BB_INST
-	orl $0x8, %edi
+	incl %ebp               /* ++L3_counter */
 #endif
         
 
@@ -222,7 +228,7 @@ L(3):
 
 L(2):
 #if BB_INST
-	orl $0x4, %edi
+	incl %edi               /* ++L2_counter */
 #endif
 
         
@@ -231,7 +237,10 @@ L(2):
         cmp $0x1, %edx
         je done                 /* if (did_instrument) return; */
 
-        pop %edi                /* else edi = pop(); return; */
+        pop %ebp                /* else */
+        pop %edi
+        pop %esi
+        pop %ebx
 done:
 #endif      
 
