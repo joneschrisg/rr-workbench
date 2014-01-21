@@ -41,7 +41,9 @@
 
 
 #define BB_INST 1
-
+/*#define LABEL_INST 1*/
+#define UNROLL_INST 1
+        
 
 	.text
 ENTRY (BP_SYM (strlen))
@@ -63,10 +65,10 @@ ENTRY (BP_SYM (strlen))
         jmp strlen_begin_impl
 
 strlen_instr:
-        xorl %ebx, %ebx         /* L0_counter = 0 */
-        xorl %esi, %esi         /* L1_counter = 0 */
-        xorl %edi, %edi         /* L2_counter = 0 */
-        xorl %ebp, %ebp         /* L3_counter = 0 */
+        xorl %ebx, %ebx         /* counter_0 = 0 */
+        xorl %esi, %esi         /* counter_1 = 0 */
+        xorl %edi, %edi         /* counter_2 = 0 */
+        xorl %ebp, %ebp         /* counter_3 = 0 */
         push $0x1               /* did_instrument = true */
 
 strlen_begin_impl:
@@ -95,8 +97,8 @@ strlen_begin_impl:
 
 
 L(0):
-#if BB_INST
-	incl %ebx               /* ++L0_counter */
+#if LABEL_INST
+	incl %ebx               /* ++counter_0 */
 #endif
         
 
@@ -131,8 +133,36 @@ L(0):
 
 
 L(1):   
-#if BB_INST
-	incl %esi               /* ++L1_counter */
+#if LABEL_INST
+	incl %esi               /* ++counter_1 */
+#endif
+        
+
+        /* Unrolled iteration 0 */
+#if UNROLL_INST
+        incl %ebx               /* ++counter_0 */
+#endif
+
+        
+	movl (%eax), %ecx	/* get word (= 4 bytes) in question */
+	addl $4, %eax		/* adjust pointer for *next* word */
+
+	subl %ecx, %edx		/* first step to negate word */
+	addl $magic, %ecx	/* add magic word */
+
+	decl %edx		/* complete negation of word */
+	jnc L(3)		/* previous addl caused overflow? */
+
+	xorl %ecx, %edx		/* (word+magic)^word */
+
+	andl $~magic, %edx	/* any of the carry flags set? */
+
+	jne L(3)		/* yes => determine byte */
+
+
+        /* Unrolled iteration 1 */
+#if UNROLL_INST
+        incl %esi               /* ++counter_1 */
 #endif
         
         
@@ -152,6 +182,12 @@ L(1):
 	jne L(3)		/* yes => determine byte */
 
 
+        /* Unrolled iteration 2 */
+#if UNROLL_INST
+        incl %edi               /* ++counter_2 */
+#endif
+
+        
 	movl (%eax), %ecx	/* get word (= 4 bytes) in question */
 	addl $4, %eax		/* adjust pointer for *next* word */
 
@@ -168,22 +204,11 @@ L(1):
 	jne L(3)		/* yes => determine byte */
 
 
-	movl (%eax), %ecx	/* get word (= 4 bytes) in question */
-	addl $4, %eax		/* adjust pointer for *next* word */
-
-	subl %ecx, %edx		/* first step to negate word */
-	addl $magic, %ecx	/* add magic word */
-
-	decl %edx		/* complete negation of word */
-	jnc L(3)		/* previous addl caused overflow? */
-
-	xorl %ecx, %edx		/* (word+magic)^word */
-
-	andl $~magic, %edx	/* any of the carry flags set? */
-
-	jne L(3)		/* yes => determine byte */
-
-
+        /* Unrolled iteration 3 */
+#if UNROLL_INST
+        incl %ebp               /* ++counter_3 */
+#endif
+        
 	movl (%eax), %ecx	/* get word (= 4 bytes) in question */
 	addl $4, %eax		/* adjust pointer for *next* word */
 
@@ -201,8 +226,8 @@ L(1):
 
 
 L(3):
-#if BB_INST
-	incl %ebp               /* ++L3_counter */
+#if LABEL_INST
+	incl %ebp               /* ++counter_3 */
 #endif
         
 
@@ -227,8 +252,8 @@ L(3):
 
 
 L(2):
-#if BB_INST
-	incl %edi               /* ++L2_counter */
+#if LABEL_INST
+	incl %edi               /* ++counter_2 */
 #endif
 
         
