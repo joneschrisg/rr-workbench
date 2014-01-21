@@ -42,7 +42,8 @@
 
 #define BB_INST 1
 /*#define LABEL_INST 1*/
-#define UNROLL_INST 1
+/*#define UNROLL_INST 1*/
+#define ZERO_TEST_INST 1
         
 
 	.text
@@ -234,9 +235,22 @@ L(3):
 	subl $4, %eax		/* correct too early pointer increment */
 	subl $magic, %ecx
 
+        
+        
+#if ZERO_TEST_INST
+	incl %ebx               /* ++counter_0 */
+#endif
+
+        
 	cmpb $0, %cl		/* lowest byte NUL? */
 	jz L(2)			/* yes => return */
 
+        
+#if ZERO_TEST_INST
+	incl %esi               /* ++counter_1 */
+#endif
+
+        
 	inc %eax		/* increment pointer */
 	testb %ch, %ch		/* second byte NUL? */
 
@@ -245,9 +259,21 @@ L(3):
 	shrl $16, %ecx		/* make upper bytes accessible */
 	incl %eax		/* increment pointer */
 
+        
+#if ZERO_TEST_INST
+	incl %edi               /* ++counter_2 */
+#endif
+
+        
 	cmpb $0, %cl		/* is third byte NUL? */
 	jz L(2)			/* yes => return */
 
+        
+#if ZERO_TEST_INST
+	incl %ebp               /* ++counter_3 */
+#endif
+
+        
 	incl %eax		/* increment pointer */
 
 
