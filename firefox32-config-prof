@@ -1,0 +1,33 @@
+# Flags for instrumenting FF build with exe path logging.
+#CC=clang
+#CXX=clang++
+
+#CFLAGS="-O1 -Xclang -load -Xclang ${HOME}/rr/workbench/PathLogging.so"
+#CXXFLAGS="-O1 -Xclang -load -Xclang ${HOME}/rr/workbench/PathLogging.so"
+#LDFLAGS="-Wl,-rpath -Wl,${HOME}/rr/workbench -L ${HOME}/rr/workbench -lpathlogging"
+
+#HOST_CFLAGS="-O1"
+#HOST_CXXFLAGS="-O1"
+
+
+# Normal build flags.  These make a prof browser build.
+ac_add_options --enable-application=browser
+mk_add_options MOZ_MAKE_FLAGS="-s -j6"
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/../ff-prof
+
+ac_add_options --disable-gstreamer
+
+ac_add_options --enable-profiling
+
+#ac_add_options --enable-ipdl-tests
+#ac_add_options --enable-valgrind
+#ac_add_options --enable-crashreporter
+
+# Flags set for targeting x86.
+#export CROSS_COMPILE=1
+#export PKG_CONFIG_PATH=/usr/lib/pkgconfig
+
+#export CC="ccache $CC -m32"
+#export CXX="ccache $CXX -m32"
+#AR=ar
+#ac_add_options --target=i686-pc-linux

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export MOZCONFIG="$HOME/rr/mozilla-central/firefox32-config-debug"
+make -f client.mk build

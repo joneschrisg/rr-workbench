@@ -113,12 +113,12 @@ record-mochitest:
 # recorded trace as well.  So explicitly save them to the workbench
 # directory.
 	rm -f $(TEST_LOG)
-#	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
-#		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
-#		$(TEST_PATH_ARG) \
-#		mochitest-plain
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
+		$(TEST_PATH_ARG) \
+		mochitest-plain
 
-	LD_PRELOAD="/home/cjones/rpmbuild/BUILD/glibc-2.17-c758a686/vanilla-obj/libc.so:/home/cjones/rpmbuild/BUILD/glibc-2.17-c758a686/vanilla-obj/nptl/libpthread.so" \
+#	LD_PRELOAD="/home/cjones/rpmbuild/BUILD/glibc-2.17-c758a686/vanilla-obj/libc.so:/home/cjones/rpmbuild/BUILD/glibc-2.17-c758a686/vanilla-obj/nptl/libpthread.so" \
 	_RR_TRACE_DIR="$(WORKDIR)" \
 	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
