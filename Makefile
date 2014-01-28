@@ -6,8 +6,8 @@ RR_DIR ?= $(abspath ../rr)
 OBJDIR = $(RR_DIR)/../obj
 RR ?= "$(OBJDIR)/bin/rr"
 
-# Current testing build made from git sha1
-# c72f46ce99102d6136d5d0e2c1d610d2f3a67692, hg commit ???
+# Current testing build made from gecko-dev git sha1
+# 41e8ad9c6f7192354d9ccfbf76579db2ab3ddc69, hg commit ???
 FF_SRCDIR = ../mozilla-central
 FF_OBJDIR = ../ff-prof
 #FF_OBJDIR = ../ff-dbg
@@ -18,10 +18,9 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 
 TEST_LOG = $(WORKDIR)/$@.log
 
-DEBUG ?= replay
-RECORD ?= record -b
-#RECORD ?= record -n
-REPLAY ?= -v replay --autopilot
+DEBUG ?= -f replay
+RECORD ?= -f record -b
+REPLAY ?= -fv replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
 
@@ -31,13 +30,13 @@ ifdef TEST_PATH
 TEST_PATH_ARG = TEST_PATH="$(TEST_PATH)"
 endif
 
-PREFS = \
-	--setpref=javascript.options.asmjs=false \
-	--setpref=javascript.options.baselinejit.chrome=false \
-	--setpref=javascript.options.baselinejit.content=false \
-	--setpref=javascript.options.ion.chrome=false \
-	--setpref=javascript.options.ion.content=false \
-	--setpref=javascript.options.ion.parallel_compilation=false
+# PREFS = \
+# 	--setpref=javascript.options.asmjs=false \
+# 	--setpref=javascript.options.baselinejit.chrome=false \
+# 	--setpref=javascript.options.baselinejit.content=false \
+# 	--setpref=javascript.options.ion.chrome=false \
+# 	--setpref=javascript.options.ion.content=false \
+# 	--setpref=javascript.options.ion.parallel_compilation=false
 
 # Shortcut for what you're currently working on, to save typing
 default: clean record-bug-845190
