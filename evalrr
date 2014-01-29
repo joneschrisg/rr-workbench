@@ -1,0 +1,6 @@
+#!/usr/bin/bash
+
+# Evaluate a gdb command in the context of rr.
+
+cmd="$@"
+echo -e "$cmd\nq\n" | gdb -batch -p $(pidof rr)
