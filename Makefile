@@ -30,6 +30,10 @@ ifdef TEST_PATH
 TEST_PATH_ARG = TEST_PATH="$(TEST_PATH)"
 endif
 
+
+##-----------------------------------------------------------------------------
+## Targets to automate common tasks
+
 # PREFS = \
 # 	--setpref=javascript.options.asmjs=false \
 # 	--setpref=javascript.options.baselinejit.chrome=false \
@@ -210,26 +214,36 @@ syscall-histogram:
 	./syscall-histogram $(TRACES)
 
 
+##-----------------------------------------------------------------------------
+## Sundry helper programs
+
 CFLAGS = -Wall -Werror -g -O0 -m32 -pthread
 
-bad_syscall: bad_syscall.c
+SIMPLE_PROGS = \
+	bad_syscall \
+	launch \
+	lcmp \
+	status2text \
+	strfutexcmd
 
-launch: launch.c
-
-lcmp: lcmp.c
+define SIMPLE_PROG_RULE # (1 = progname)
+$(1): $(1).c
+helper-progs:: Makefile $(1)
+endef
+$(foreach prog,$(SIMPLE_PROGS),$(eval $(call SIMPLE_PROG_RULE,$(prog))))
 
 libseccomptrace.so: Makefile seccomptrace.c
 	$(CC) $(CFLAGS) -fPIC -shared -o $@ seccomptrace.c
 
-regtrace: libseccomptrace.so regtrace.c
-
-status2text: status2text.c
-
-strfutexcmd: strfutexcmd.c
+regtrace: Makefile libseccomptrace.so regtrace.c
 
 # XXX add me to rr tree?
 librrmon.so: rrmon.o
 	$(CC) $(CFLAGS) -shared -o $@ $<
+
+
+##-----------------------------------------------------------------------------
+## LLVM plugin to instrument Bell-Larus path tracing
 
 LLVM_PLUGIN_RELDIR = lib/Transforms/PathLogging
 LLVM_SRCDIR = $(HOME)/src/llvm-clang/llvm
