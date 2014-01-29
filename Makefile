@@ -225,6 +225,8 @@ regtrace: libseccomptrace.so regtrace.c
 
 status2text: status2text.c
 
+strfutexcmd: strfutexcmd.c
+
 # XXX add me to rr tree?
 librrmon.so: rrmon.o
 	$(CC) $(CFLAGS) -shared -o $@ $<
