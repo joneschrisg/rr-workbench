@@ -64,7 +64,7 @@ __asm__(".text\n\t"
         "ret\n\t"
     );
 
-static int holy_crap_it_worked = 1;
+static int holy_crap_it_worked;
 static long last_syscallno;
 static long last_a0;
 static long last_ret;
