@@ -17,23 +17,6 @@ TRACE_EVENT_RX = make_int_scanner(*TRACE_FIELDS)
 TRACE_SYNTH_EVENT_RX = make_int_scanner(*TRACE_FIELDS[0:4])
 TRACE_NAME = 'trace_0'
 
-
-def read_syscalls():
-    t = { }
-    rx = re.compile(r'^#define __NR_([^ ]+) (\d+)')
-    for line in open('/usr/include/asm/unistd_32.h', 'r'):
-        m = rx.match(line)
-        if not m:
-            continue
-        t[int(m.group(2))] = m.group(1)
-    return t
-
-def syscallname(no):
-    return 'rrcall_init_buf' if 442 == no else SYSCALL_TABLE.get(no, '???')
-
-SYSCALL_TABLE = read_syscalls()
-
-
 class Event:
     def __init__(self, m):
         values = m.groupdict(-1)
@@ -53,6 +36,9 @@ def incr_histogram_item(hist, item):
     count = hist.get(item, 0)
     count += 1
     hist[item] = count
+
+##-----------------------------------------------------------------------------
+## Accumulators.
 
 def accum_syscall_histogram(inf, hist={}):
     for ev in iterevents(inf):
@@ -96,14 +82,63 @@ def accum_socketcall_histogram(inf, hist={}):
         if ev.reason == SYS_socketcall:
             incr_histogram_item(hist, SOCKETCALLS[ev.ebx])
 
-def print_histogram(name, hist, outf=sys.stdout):
+SYS_futex = 240
+FUTEX_PRIVATE_FLAG = 128
+FUTEX_CLOCK_REALTIME = 256
+FUTEX_CMD_MASK = ~(FUTEX_PRIVATE_FLAG | FUTEX_CLOCK_REALTIME)
+def accum_futex_histogram(inf, hist={}):
+    for ev in iterevents(inf):
+        if ev.reason == SYS_futex:
+            incr_histogram_item(hist, ev.ecx & FUTEX_CMD_MASK)
+
+##-----------------------------------------------------------------------------
+## Stringifiers.
+
+def read_syscalls():
+    t = { }
+    rx = re.compile(r'^#define __NR_([^ ]+) (\d+)')
+    for line in open('/usr/include/asm/unistd_32.h', 'r'):
+        m = rx.match(line)
+        if not m:
+            continue
+        t[int(m.group(2))] = m.group(1)
+    return t
+
+SYSCALL_TABLE = read_syscalls()
+def stringify_syscall(no):
+    return 'rrcall_init_buf' if 442 == no else SYSCALL_TABLE.get(no, '???')
+
+def stringify_futex(op):
+    private = ' (private)' if op & FUTEX_PRIVATE_FLAG else ''
+    rt = ' (rt)' if op & FUTEX_CLOCK_REALTIME else ''
+    strop = {
+        0: 'FUTEX_WAIT',
+        1: 'FUTEX_WAKE',
+        2: 'FUTEX_FD',
+        3: 'FUTEX_REQUEUE',
+        4: 'FUTEX_CMP_REQUEUE',
+        5: 'FUTEX_WAKE_OP',
+        6: 'FUTEX_LOCK_PI',
+        7: 'FUTEX_UNLOCK_PI',
+        8: 'FUTEX_TRYLOCK_PI',
+        9: 'FUTEX_WAIT_BITSET',
+        10: 'FUTEX_WAKE_BITSET',
+        11: 'FUTEX_WAIT_REQUEUE_PI',
+        12: 'FUTEX_CMP_REQUEUE_PI',
+    } [op & FUTEX_CMD_MASK]
+    return strop + private + rt
+
+##-----------------------------------------------------------------------------
+## Printers.
+
+def print_histogram(label, hist, stringify, outf=sys.stdout):
     total = sum(hist.values())
-    print>>outf, 'count\t     %  .... '+ name
+    print>>outf, 'count\t     %  .... '+ label
     print>>outf, '-----\t-------'
     for k in sorted(hist, key=hist.get, reverse=True):
         print>>outf, '%6u\t%6.2f%% .... %s (%d)'% (hist[k],
-                                                 100.0 * hist[k] / total,
-                                                 syscallname(k), k)
+                                                   100.0 * hist[k] / total,
+                                                   stringify(k), k)
     print>>outf, '-------'
     print>>outf, '%6u\t%6.2f%% .... %s'% (total, 100.0, 'Total')
 
@@ -112,17 +147,20 @@ def usage(exe):
     print>>sys.stderr, '   ', exe, '("syscall"|"insns/rcb") [<trace-dir>...]'
     sys.exit(1)
 
-def label_for(which):
-    if which == 'insns/rcb':
-        return 'ins/rcb'
-    elif which == 'syscall':
-        return 'syscall'
+def lookup_accum_stringify(which):
+    if which == 'syscall':
+        return accum_syscall_histogram, stringify_syscall
+    elif which == 'insns/rcb':
+        return accum_insn_histogram, None
     elif which == 'flush':
-        return 'why'
+        return accum_flush_histogram, stringify_syscall
     elif which == 'socketcall':
-        return 'call'
+        return accum_socketcall_histogram, None
+    elif which == 'futex':
+        return accum_futex_histogram, stringify_futex
     else:
-        assert 0 and 'Unknown histogram'
+        usage(argv)
+
 
 def main(argv):
     exe = argv.pop(0)
@@ -131,25 +169,17 @@ def main(argv):
 
     which = argv.pop(0)
     hist = {}
+    accum_hist, stringify = lookup_accum_stringify(which)
+
     if 0 == len(argv):
         argv.append(sys.stdin)
     for f in argv:
         trace_file = f
-        if isinstance(f, str):
-            trace_file = open(f +'/'+ TRACE_NAME, 'r')
-        if which == 'syscall':
-            accum_syscall_histogram(trace_file, hist)
-        elif which == 'insns/rcb':
-            accum_insn_histogram(trace_file, hist)
-        elif which == 'flush':
-            accum_flush_histogram(trace_file, hist)
-        elif which == 'socketcall':
-            accum_socketcall_histogram(trace_file, hist)
-        else:
-            usage(argv)
+        if isinstance(f, str): trace_file = open(f +'/'+ TRACE_NAME, 'r')
+        accum_hist(trace_file, hist)
         trace_file.close()
 
-    print_histogram(label_for(which), hist)
+    print_histogram(which, hist, stringify)
 
 if __name__ == '__main__':
     main(sys.argv[:])
