@@ -224,7 +224,8 @@ SIMPLE_PROGS = \
 	launch \
 	lcmp \
 	status2text \
-	strfutexcmd
+	strfutexcmd \
+	vdso_monkeypatch
 
 define SIMPLE_PROG_RULE # (1 = progname)
 $(1): $(1).c
