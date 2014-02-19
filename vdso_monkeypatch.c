@@ -18,7 +18,7 @@
 typedef uint8_t byte;
 
 /* x86 native kernel. */
-#if 0
+#if 1
 static void* vdso_start_addr = (void*)0xb7fff000;
 static const size_t vdso_num_bytes = 4096;
 static const size_t vsyscall_offset = 0x414;
