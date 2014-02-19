@@ -17,7 +17,18 @@
 
 typedef uint8_t byte;
 
-static long (*vsyscall)(int syscall, ...) = (void*)0xb7fff414;
+/* x86 native kernel. */
+#if 0
+static void* vdso_start_addr = (void*)0xb7fff000;
+static const size_t vdso_num_bytes = 4096;
+static const size_t vsyscall_offset = 0x414;
+#else
+/* x86 process on x64 kernel. */
+static void* vdso_start_addr = (void*)0xf7ffb000;
+static const size_t vdso_num_bytes = 4096;
+static const size_t vsyscall_offset = 0x420;
+#endif
+
 static const byte vsyscall_impl[] = {
     0x51,                       /* push %ecx */
     0x52,                       /* push %edx */
@@ -181,11 +192,17 @@ vsyscall_hook(const struct syscall_info* call)
     return ret;
 }
 
+static void*
+__kernel_vsyscall_addr()
+{
+    return vdso_start_addr + vsyscall_offset;
+}
+
 static void
-monkey_patch()
+monkey_patch(void* vsyscall)
 {
     monkeypatch_template t;
-    byte* orig = (byte*)vsyscall;
+    byte* orig = vsyscall;
     int i;
 
     memcpy(t.bytes, vsyscall_monkeypatch, sizeof(t.bytes));
@@ -219,27 +236,24 @@ verify_vsyscall_insns(void* vsyscall)
 int
 main(int argc, char** argv)
 {
-    void* vdso_start = (void*)0xb7fff000;
-    void* vdso_end = (void*)0xb8000000;
-    size_t vdso_num_bytes = vdso_end - vdso_start;
-
+    void* vsyscall = __kernel_vsyscall_addr();
     printf("vsyscall: %p\n", vsyscall);
 
     verify_vsyscall_insns(vsyscall);
 
-    int ret = mprotect(vdso_start, vdso_num_bytes,
+    int ret = mprotect(vdso_start_addr, vdso_num_bytes,
                        PROT_READ | PROT_WRITE | PROT_EXEC);
     int err = errno;
-    printf("mprotect(%p, %d) -> %d (%s)\n", vdso_start, vdso_num_bytes,
+    printf("mprotect(%p, %d) -> %d (%s)\n", vdso_start_addr, vdso_num_bytes,
            ret, strerror(err));
 
     char cmd[PATH_MAX];
     snprintf(cmd, sizeof(cmd), "cat /proc/%d/maps", getpid());
     system(cmd);
 
-    monkey_patch();
+    monkey_patch(vsyscall);
 
-    mprotect(vdso_start, vdso_num_bytes, PROT_READ | PROT_EXEC);
+    mprotect(vdso_start_addr, vdso_num_bytes, PROT_READ | PROT_EXEC);
 
     return 0;
 }
