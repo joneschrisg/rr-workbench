@@ -69,18 +69,10 @@ def accum_flush_histogram(inf, hist={}):
             incr_histogram_item(hist, ev.reason)
 
 SYS_socketcall = 102
-# NB: tuple is indexed by socketcall sub-call, so order is important.
-# Also, we're trying to print these names within one "tab", so the
-# names are truncated at 7 characters.
-SOCKETCALLS = ( '???', 'socket', 'bind', 'connect', 'listen', 'accept',
-                'getsckn', 'getpern', 'sktpair', 'send', 'recv',
-                'sendto', 'rcvfrom', 'shutdwn', 'stskopt',
-                'gtskopt', 'sendmsg', 'recvmsg', 'accept4',
-                'rcvmmsg', 'sndmmsg' )
 def accum_socketcall_histogram(inf, hist={}):
     for ev in iterevents(inf):
         if ev.reason == SYS_socketcall:
-            incr_histogram_item(hist, SOCKETCALLS[ev.ebx])
+            incr_histogram_item(hist, ev.ebx)
 
 SYS_futex = 240
 FUTEX_PRIVATE_FLAG = 128
@@ -128,6 +120,40 @@ def stringify_futex(op):
     } [op & FUTEX_CMD_MASK]
     return strop + private + rt
 
+def stringify_socketcall(op):
+    return {
+        1: 'SYS_SOCKET',
+        2: 'SYS_BIND',
+        3: 'SYS_CONNECT',
+        4: 'SYS_LISTEN',
+        5: 'SYS_ACCEPT',
+        6: 'SYS_GETSOCKNAME',
+        7: 'SYS_GETPEERNAME',
+        8: 'SYS_SOCKETPAIR',
+        9: 'SYS_SEND',
+        10: 'SYS_RECV',
+        11: 'SYS_SENDTO',
+        12: 'SYS_RECVFROM',
+        13: 'SYS_SHUTDOWN',
+        14: 'SYS_SETSOCKOPT',
+        15: 'SYS_GETSOCKOPT',
+        16: 'SYS_SENDMSG',
+        17: 'SYS_RECVMSG',
+        18: 'SYS_ACCEPT4',
+        19: 'SYS_RECVMMSG',
+        20: 'SYS_SENDMMSG',
+    }[op]
+
+# NB: tuple is indexed by socketcall sub-call, so order is important.
+# Also, we're trying to print these names within one "tab", so the
+# names are truncated at 7 characters.
+SOCKETCALLS = ( '???', 'socket', 'bind', 'connect', 'listen', 'accept',
+                'getsckn', 'getpern', 'sktpair', 'send', 'recv',
+                'sendto', 'rcvfrom', 'shutdwn', 'stskopt',
+                'gtskopt', 'sendmsg', 'recvmsg', 'accept4',
+                'rcvmmsg', 'sndmmsg' )
+
+
 ##-----------------------------------------------------------------------------
 ## Printers.
 
@@ -144,7 +170,7 @@ def print_histogram(label, hist, stringify, outf=sys.stdout):
 
 def usage(exe):
     print>>sys.stderr, 'Usage:'
-    print>>sys.stderr, '   ', exe, '("syscall"|"insns/rcb") [<trace-dir>...]'
+    print>>sys.stderr, '   rr dump -r <trace-dir> |', exe, '(syscall|insns/rcb|flush|socketcall|futex)'
     sys.exit(1)
 
 def lookup_accum_stringify(which):
@@ -155,7 +181,7 @@ def lookup_accum_stringify(which):
     elif which == 'flush':
         return accum_flush_histogram, stringify_syscall
     elif which == 'socketcall':
-        return accum_socketcall_histogram, None
+        return accum_socketcall_histogram, stringify_socketcall
     elif which == 'futex':
         return accum_futex_histogram, stringify_futex
     else:
