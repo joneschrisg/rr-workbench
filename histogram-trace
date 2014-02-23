@@ -40,12 +40,13 @@ def incr_histogram_item(hist, item):
 ##-----------------------------------------------------------------------------
 ## Accumulators.
 
+def is_syscall_entry(ev):
+    return ev.reason >= 0 and ev.entry_exit == 0
+
 def accum_syscall_histogram(inf, hist={}):
     for ev in iterevents(inf):
-        syscall = ev.reason
-        if syscall < 0:
-            continue
-        incr_histogram_item(hist, syscall)
+        if is_syscall_entry(ev):
+            incr_histogram_item(hist, ev.reason)
     return hist
 
 def accum_insn_histogram(inf, hist={}):
@@ -71,7 +72,7 @@ def accum_flush_histogram(inf, hist={}):
 SYS_socketcall = 102
 def accum_socketcall_histogram(inf, hist={}):
     for ev in iterevents(inf):
-        if ev.reason == SYS_socketcall:
+        if is_syscall_entry(ev) and SYS_socketcall == ev.reason:
             incr_histogram_item(hist, ev.ebx)
 
 SYS_futex = 240
@@ -80,8 +81,16 @@ FUTEX_CLOCK_REALTIME = 256
 FUTEX_CMD_MASK = ~(FUTEX_PRIVATE_FLAG | FUTEX_CLOCK_REALTIME)
 def accum_futex_histogram(inf, hist={}):
     for ev in iterevents(inf):
-        if ev.reason == SYS_futex:
+        if is_syscall_entry(ev) and SYS_futex == ev.reason:
             incr_histogram_item(hist, ev.ecx & FUTEX_CMD_MASK)
+
+SYS_fcntl = 55
+SYS_fcntl64 = 221
+def accum_fcntl_histogram(inf, hist={}):
+    for ev in iterevents(inf):
+        if is_syscall_entry(ev) and (SYS_fcntl == ev.reason or
+                                     SYS_fcntl64 == ev.reason):
+            incr_histogram_item(hist, ev.ecx)
 
 ##-----------------------------------------------------------------------------
 ## Stringifiers.
@@ -98,7 +107,9 @@ def read_syscalls():
 
 SYSCALL_TABLE = read_syscalls()
 def stringify_syscall(no):
-    return 'rrcall_init_buf' if 442 == no else SYSCALL_TABLE.get(no, '???')
+    return ('rrcall_init_buf' if 442 == no else
+            'rrcall_monkeypatch_vdso' if 443 == no else
+            SYSCALL_TABLE.get(no, '???'))
 
 def stringify_futex(op):
     private = ' (private)' if op & FUTEX_PRIVATE_FLAG else ''
@@ -144,15 +155,19 @@ def stringify_socketcall(op):
         20: 'SYS_SENDMMSG',
     }[op]
 
-# NB: tuple is indexed by socketcall sub-call, so order is important.
-# Also, we're trying to print these names within one "tab", so the
-# names are truncated at 7 characters.
-SOCKETCALLS = ( '???', 'socket', 'bind', 'connect', 'listen', 'accept',
-                'getsckn', 'getpern', 'sktpair', 'send', 'recv',
-                'sendto', 'rcvfrom', 'shutdwn', 'stskopt',
-                'gtskopt', 'sendmsg', 'recvmsg', 'accept4',
-                'rcvmmsg', 'sndmmsg' )
-
+def stringify_fcntl(which):
+    m = {
+        4: 'F_SETFL',
+        5: 'F_GETLK',
+        6: 'F_SETLK',
+        7: 'F_SETLKW',
+        10: 'F_SETSIG',
+        12: 'F_GETLK64',
+        13: 'F_SETLK64',
+        14: 'F_SETLKW64',
+        15: 'F_SETOWN_EX'
+    }
+    return m.get(which, '???')
 
 ##-----------------------------------------------------------------------------
 ## Printers.
@@ -170,7 +185,7 @@ def print_histogram(label, hist, stringify, outf=sys.stdout):
 
 def usage(exe):
     print>>sys.stderr, 'Usage:'
-    print>>sys.stderr, '   rr dump -r <trace-dir> |', exe, '(syscall|insns/rcb|flush|socketcall|futex)'
+    print>>sys.stderr, '   rr dump -r <trace-dir> |', exe, '(syscall|insns/rcb|flush|socketcall|futex|fcntl)'
     sys.exit(1)
 
 def lookup_accum_stringify(which):
@@ -184,6 +199,8 @@ def lookup_accum_stringify(which):
         return accum_socketcall_histogram, stringify_socketcall
     elif which == 'futex':
         return accum_futex_histogram, stringify_futex
+    elif which == 'fcntl':
+        return accum_fcntl_histogram, stringify_fcntl    
     else:
         usage(argv)
 

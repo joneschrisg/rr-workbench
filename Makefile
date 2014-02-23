@@ -18,9 +18,9 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 
 TEST_LOG = $(WORKDIR)/$@.log
 
-DEBUG ?= -f replay
-RECORD ?= -fv record -b
-REPLAY ?= -fv replay --autopilot
+DEBUG ?= -fm replay
+RECORD ?= -fmv record -b
+REPLAY ?= -fmv replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
 
