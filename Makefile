@@ -26,6 +26,10 @@ DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
 
 TRACE ?= trace_0
 
+LIBC_OBJDIR ?= $(HOME)/rpmbuild/BUILD/glibc-2.18/obj
+PRELOAD_CUSTOM_LIBC ?= LD_PRELOAD="$(LIBC_OBJDIR)/libc.so:$(LIBC_OBJDIR)/nptl/libpthread.so:$(LD_PRELOAD)"
+
+
 ifdef TEST_PATH
 TEST_PATH_ARG = TEST_PATH="$(TEST_PATH)"
 endif
@@ -115,18 +119,15 @@ record-mochitest:
 # blows it away when the test suite finishes.  This blows away our
 # recorded trace as well.  So explicitly save them to the workbench
 # directory.
-	rm -f $(TEST_LOG)
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
-		$(TEST_PATH_ARG) \
-		mochitest-plain
 
-#	LD_PRELOAD="/home/cjones/rpmbuild/BUILD/glibc-2.17-c758a686/vanilla-obj/libc.so:/home/cjones/rpmbuild/BUILD/glibc-2.17-c758a686/vanilla-obj/nptl/libpthread.so" \
-	_RR_TRACE_DIR="$(WORKDIR)" \
+#	$(PRELOAD_CUSTOM_LIBC) \
+
+	rm -f $(TEST_LOG)
+	 _RR_TRACE_DIR="$(WORKDIR)" \
 	make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
-		TEST_PATH="dom/tests/mochitest/ajax/jquery" \
-		mochitest-plain
+	 	EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
+	 	$(TEST_PATH_ARG) \
+	 	mochitest-plain
 
 
 .PHONY: record-mochitest-chrome
