@@ -40,8 +40,9 @@ def incr_histogram_item(hist, item):
 ##-----------------------------------------------------------------------------
 ## Accumulators.
 
+USR_SCHED = -1020
 def is_syscall_entry(ev):
-    return ev.reason >= 0 and ev.entry_exit == 0
+    return (ev.reason >=0 or USR_SCHED == ev.reason) and ev.entry_exit == 0
 
 def accum_syscall_histogram(inf, hist={}):
     for ev in iterevents(inf):
@@ -107,7 +108,8 @@ def read_syscalls():
 
 SYSCALL_TABLE = read_syscalls()
 def stringify_syscall(no):
-    return ('rrcall_init_buf' if 442 == no else
+    return ('USR_SCHED' if USR_SCHED == no else
+            'rrcall_init_buf' if 442 == no else
             'rrcall_monkeypatch_vdso' if 443 == no else
             SYSCALL_TABLE.get(no, '???'))
 
