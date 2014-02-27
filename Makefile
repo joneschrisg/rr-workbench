@@ -7,7 +7,7 @@ OBJDIR = $(RR_DIR)/../obj
 RR ?= "$(OBJDIR)/bin/rr"
 
 # Current testing build made from gecko-dev git sha1
-# 41e8ad9c6f7192354d9ccfbf76579db2ab3ddc69, hg commit ???
+# eedee8e64e82e6249090163be69788599e92cc70, hg commit ???
 FF_SRCDIR = ../mozilla-central
 FF_OBJDIR = ../ff-prof
 #FF_OBJDIR = ../ff-dbg
