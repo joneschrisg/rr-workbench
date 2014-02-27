@@ -130,6 +130,14 @@ record-mochitest:
 	 	mochitest-plain
 
 
+strace-mochitest:
+	rm -f $(TEST_LOG)
+	make -C $(FF_OBJDIR) \
+	 	EXTRA_TEST_ARGS="--debugger=strace --debugger-args=-f" \
+	 	$(TEST_PATH_ARG) mochitest-plain
+
+
+
 .PHONY: record-mochitest-chrome
 help::
 	@echo "  make [TEST_PATH=dir] record-mochitest-chrome"
