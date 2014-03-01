@@ -6,10 +6,12 @@ RR_DIR ?= $(abspath ../rr)
 OBJDIR = $(RR_DIR)/../obj
 RR ?= "$(OBJDIR)/bin/rr"
 
+SUNSPIDER ?= $(HOME)/src/SunSpider
+
 # Current testing build made from gecko-dev git sha1
 # eedee8e64e82e6249090163be69788599e92cc70, hg commit ???
-FF_SRCDIR = ../mozilla-central
-FF_OBJDIR = ../ff-prof
+FF_SRCDIR = $(abspath ../mozilla-central)
+FF_OBJDIR = $(abspath ../ff-prof)
 #FF_OBJDIR = ../ff-dbg
 XRE_PATH ?= $(FF_OBJDIR)/dist/bin
 
@@ -26,6 +28,8 @@ DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
 
 TRACE ?= trace_0
 
+JS_ARGS =
+
 LIBC_OBJDIR ?= $(HOME)/rpmbuild/BUILD/glibc-2.18/obj
 PRELOAD_CUSTOM_LIBC ?= LD_PRELOAD="$(LIBC_OBJDIR)/libc.so:$(LIBC_OBJDIR)/nptl/libpthread.so:$(LD_PRELOAD)"
 
@@ -37,6 +41,9 @@ endif
 
 ##-----------------------------------------------------------------------------
 ## Targets to automate common tasks
+
+ PREFS = \
+	--setpref=javascript.options.ion.parallel_compilation=false
 
 # PREFS = \
 # 	--setpref=javascript.options.asmjs=false \
@@ -190,18 +197,19 @@ record-reftest:
 #	$(RR) $(RECORD) -c250 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
 
 
-.PHONY: record-bug-845190
-help::
-	@echo "  make record-bug-845190"
-	@echo "    Run the xpcshell test that's triggering this top orange."
-record-bug-845190:
-	_RR_TRACE_DIR="$(WORKDIR)" python $(XPCSHELL_DIR)/runxpcshelltests.py \
-		$(DBG) \
-		--test-path=test_645970.js \
-		--xre-path=$(XRE_PATH) \
-		--verbose \
-		$(XPCSHELL) \
-		$(XPCSHELL_DIR)/tests/toolkit/components/search/tests/xpcshell
+.PHONY: record-sunspider
+record-sunspider:
+	cd $(SUNSPIDER) && \
+		_RR_TRACE_DIR="$(WORKDIR)" $(RR) $(RECORD) \
+		./sunspider --shell=$(XRE_PATH)/js \
+			--args="$(JS_ARGS)" --run=30 --suite=sunspider-0.9.1
+
+.PHONY: sunspider
+sunspider:
+	cd $(SUNSPIDER) && \
+		./sunspider --shell=$(XRE_PATH)/js \
+			--args="$(JS_ARGS)"
+			--run=30 --suite=sunspider-0.9.1
 
 
 .PHONY: replay
