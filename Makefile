@@ -21,7 +21,8 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 TEST_LOG = $(WORKDIR)/$@.log
 
 DEBUG ?= -fm replay
-RECORD ?= -fmv record -b
+#RECORD ?= -fmv record -b
+RECORD ?= -f record -b
 REPLAY ?= -fmv replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
@@ -185,30 +186,48 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-reftest:
-#	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		reftest
-#	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file://$(abspath $(FF_SRCDIR)/$(TEST_PATH)/reftest.list)
-#	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
-	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/layout/reftests/transform/reftest.list
-#	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
-#	$(RR) $(RECORD) -c2500 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
-#	$(RR) $(RECORD) -c250 $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/netwerk/test/reftest/reftest.list
+
+
+.PHONY: record-reftest-ipc
+help::
+	@echo "  make [TEST_PATH=dir] record-reftest"
+	@echo "    Record firefox running the reftest-ipc suite, optionally"
+	@echo "    just the TEST_PATH tests."
+
+record-reftest-ipc:
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		$(TEST_PATH_ARG) \
+		reftest-ipc
 
 
 .PHONY: record-sunspider
+help::
+	@echo "  make [JS_ARGS=args] record-sunspider"
+	@echo "    Record firefox jsshell running sunspider, optionally"
+	@echo "    passing it JS_ARGS."
+
 record-sunspider:
 	cd $(SUNSPIDER) && \
 		_RR_TRACE_DIR="$(WORKDIR)" $(RR) $(RECORD) \
 		./sunspider --shell=$(XRE_PATH)/js \
-			--args="$(JS_ARGS)" --run=30 --suite=sunspider-0.9.1
+			--args="$(JS_ARGS)" \
+			--run=30 --suite=sunspider-0.9.1
 
 .PHONY: sunspider
+help::
+	@echo "  make [JS_ARGS=args] sunspider"
+	@echo "    Run sunspider under firefox jsshell optionally"
+	@echo "    passing it JS_ARGS."
+
 sunspider:
 	cd $(SUNSPIDER) && \
 		./sunspider --shell=$(XRE_PATH)/js \
-			--args="$(JS_ARGS)"
+			--args="$(JS_ARGS)" \
 			--run=30 --suite=sunspider-0.9.1
 
 
