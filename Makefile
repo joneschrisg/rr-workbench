@@ -11,8 +11,8 @@ SUNSPIDER ?= $(HOME)/src/SunSpider
 # Current testing build made from gecko-dev git sha1
 # eedee8e64e82e6249090163be69788599e92cc70, hg commit ???
 FF_SRCDIR = $(abspath ../mozilla-central)
-FF_OBJDIR = $(abspath ../ff-prof)
-#FF_OBJDIR = ../ff-dbg
+FF_OBJDIR = $(abspath ../ff-dbg)
+#FF_OBJDIR = $(abspath ../ff-prof)
 XRE_PATH ?= $(FF_OBJDIR)/dist/bin
 
 FF ?= "$(XRE_PATH)/firefox"
@@ -21,8 +21,7 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 TEST_LOG = $(WORKDIR)/$@.log
 
 DEBUG ?= -fm replay
-#RECORD ?= -fmv record -b
-RECORD ?= -f record -b
+RECORD ?= -fmv record -b
 REPLAY ?= -fmv replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
