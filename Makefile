@@ -9,7 +9,7 @@ RR ?= "$(OBJDIR)/bin/rr"
 SUNSPIDER ?= $(HOME)/src/SunSpider
 
 # Current testing build made from gecko-dev git sha1
-# eedee8e64e82e6249090163be69788599e92cc70, hg commit ???
+# 7b19aee5a4f2a2c7aa22498e15b2485b1d5d0e34, hg commit ???
 FF_SRCDIR = $(abspath ../mozilla-central)
 FF_OBJDIR = $(abspath ../ff-dbg)
 #FF_OBJDIR = $(abspath ../ff-prof)
@@ -126,9 +126,6 @@ record-mochitest:
 # blows it away when the test suite finishes.  This blows away our
 # recorded trace as well.  So explicitly save them to the workbench
 # directory.
-
-#	$(PRELOAD_CUSTOM_LIBC) \
-
 	rm -f $(TEST_LOG)
 	 _RR_TRACE_DIR="$(WORKDIR)" \
 	make -C $(FF_OBJDIR) \
@@ -163,6 +160,24 @@ record-mochitest-chrome:
 		mochitest-chrome
 
 
+.PHONY: record-mochitest-a11y
+help::
+	@echo "  make [TEST_PATH=dir] record-mochitest-a11y"
+	@echo "    Record firefox running the mochitest-a11y suite,"
+	@echo "    optionally just the TEST_PATH tests."
+
+record-mochitest-a11y:
+# The mochitest harness helpfully chdir()s to a tmp directory and then
+# blows it away when the test suite finishes.  This blows away our
+# recorded trace as well.  So explicitly save them to the workbench
+# directory.
+	rm -f $(TEST_LOG)
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
+		$(TEST_PATH_ARG) \
+		mochitest-a11y
+
+
 .PHONY: record-crashtest
 help::
 	@echo "  make [TEST_PATH=dir] record-crashtest"
@@ -170,13 +185,24 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-crashtest:
-	rm -f $(TEST_LOG)
-	TEST_PATH=$(TEST_PATH) \
 	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		$(TEST_PATH_ARG) \
 		crashtest
 
-#	$(RR) $(RECORD) $(FF) -no-remote -P garbage -reftest file:///home/cjones/rr/mozilla-central/$(TEST_PATH)
+
+.PHONY: record-crashtest-ipc
+help::
+	@echo "  make [TEST_PATH=dir] record-crashtest-ipc"
+	@echo "    Record firefox running the crashtest-ipc suite, optionally"
+	@echo "    just the TEST_PATH tests."
+
+record-crashtest-ipc:
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		$(TEST_PATH_ARG) \
+		crashtest-ipc
+
 
 .PHONY: record-reftest
 help::
@@ -202,6 +228,19 @@ record-reftest-ipc:
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		reftest-ipc
+
+
+.PHONY: record-jstestbrowser
+help::
+	@echo "make [TEST_PATH=dir] record-jstestbrowser"
+	@echo "  Record firefox running the jstestbrowser suite, optionally"
+	@echo "  just the TEST_PATH tests."
+
+record-jstestbrowser:
+	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		$(TEST_PATH_ARG) \
+		jstestbrowser
 
 
 .PHONY: record-sunspider
