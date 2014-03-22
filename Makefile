@@ -9,7 +9,7 @@ RR ?= "$(OBJDIR)/bin/rr"
 SUNSPIDER ?= $(HOME)/src/SunSpider
 
 # Current testing build made from gecko-dev git sha1
-# 7b19aee5a4f2a2c7aa22498e15b2485b1d5d0e34, hg commit ???
+# fe491244cd1240f7b34a4c317dc124cbd647399a, hg commit ???
 FF_SRCDIR = $(abspath ../mozilla-central)
 FF_OBJDIR = $(abspath ../ff-dbg)
 #FF_OBJDIR = $(abspath ../ff-prof)
@@ -24,7 +24,7 @@ DEBUG ?= -fm replay
 RECORD ?= -fmv record -b
 REPLAY ?= -fmv replay --autopilot
 
-DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)'
+DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)' --slowscript
 
 TRACE ?= trace_0
 
