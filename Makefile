@@ -9,10 +9,10 @@ RR ?= "$(OBJDIR)/bin/rr"
 SUNSPIDER ?= $(HOME)/src/SunSpider
 
 # Current testing build made from gecko-dev git sha1
-# fe491244cd1240f7b34a4c317dc124cbd647399a, hg commit ???
+# 1c376e56533ab62cad819fca2d7db023a674e438, hg commit ???
 FF_SRCDIR = $(abspath ../mozilla-central)
-FF_OBJDIR = $(abspath ../ff-dbg)
-#FF_OBJDIR = $(abspath ../ff-prof)
+#FF_OBJDIR = $(abspath ../ff-dbg)
+FF_OBJDIR = $(abspath ../ff-prof)
 XRE_PATH ?= $(FF_OBJDIR)/dist/bin
 
 FF ?= "$(XRE_PATH)/firefox"
@@ -21,12 +21,12 @@ XPCSHELL = $(XRE_PATH)/xpcshell
 TEST_LOG = $(WORKDIR)/$@.log
 
 DEBUG ?= -fm replay
-RECORD ?= -fmv record -b
-REPLAY ?= -fmv replay --autopilot
+RECORD ?= -fm record -b
+REPLAY ?= -fm replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)' --slowscript
 
-TRACE ?= trace_0
+TRACE ?=
 
 JS_ARGS =
 
@@ -88,7 +88,7 @@ help::
 	@echo "  make clean"
 	@echo "    Remove all trace directories."
 clean:
-	rm -rf trace_* *.o /tmp/rr-test-*
+	rm -rf ~/.rr *.o /tmp/rr-test-*
 
 
 .PHONY: debug
@@ -109,10 +109,10 @@ dif:
 
 .PHONY: record-firefox
 help::
-	@echo "  make record-firefox"
-	@echo "    Record firefox running standalone."
+	@echo "  make [URL=url] record-firefox"
+	@echo "    Record firefox running standalone, optionally loading URL."
 record-firefox:
-	$(RR) $(RECORD) $(FF) -no-remote -P garbage
+	$(RR) $(RECORD) $(FF) -no-remote -P garbage $(URL)
 
 
 .PHONY: record-mochitest
@@ -127,7 +127,6 @@ record-mochitest:
 # recorded trace as well.  So explicitly save them to the workbench
 # directory.
 	rm -f $(TEST_LOG)
-	 _RR_TRACE_DIR="$(WORKDIR)" \
 	make -C $(FF_OBJDIR) \
 	 	EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
 	 	$(TEST_PATH_ARG) \
@@ -154,7 +153,7 @@ record-mochitest-chrome:
 # recorded trace as well.  So explicitly save them to the workbench
 # directory.
 	rm -f $(TEST_LOG)
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
 		$(TEST_PATH_ARG) \
 		mochitest-chrome
@@ -172,7 +171,7 @@ record-mochitest-a11y:
 # recorded trace as well.  So explicitly save them to the workbench
 # directory.
 	rm -f $(TEST_LOG)
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="$(DBG) $(PREFS)" \
 		$(TEST_PATH_ARG) \
 		mochitest-a11y
@@ -185,7 +184,7 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-crashtest:
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		crashtest
@@ -198,7 +197,7 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-crashtest-ipc:
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		crashtest-ipc
@@ -211,7 +210,7 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-reftest:
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		reftest
@@ -224,7 +223,7 @@ help::
 	@echo "    just the TEST_PATH tests."
 
 record-reftest-ipc:
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		reftest-ipc
@@ -237,7 +236,7 @@ help::
 	@echo "  just the TEST_PATH tests."
 
 record-jstestbrowser:
-	_RR_TRACE_DIR="$(WORKDIR)" make -C $(FF_OBJDIR) \
+	make -C $(FF_OBJDIR) \
 		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
 		$(TEST_PATH_ARG) \
 		jstestbrowser
@@ -251,7 +250,7 @@ help::
 
 record-sunspider:
 	cd $(SUNSPIDER) && \
-		_RR_TRACE_DIR="$(WORKDIR)" $(RR) $(RECORD) \
+		$(RR) $(RECORD) \
 		./sunspider --shell=$(XRE_PATH)/js \
 			--args="$(JS_ARGS)" \
 			--run=30 --suite=sunspider-0.9.1
