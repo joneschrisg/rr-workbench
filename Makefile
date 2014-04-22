@@ -298,7 +298,8 @@ SIMPLE_PROGS = \
 	lcmp \
 	status2text \
 	strfutexcmd \
-	vdso_monkeypatch
+	vdso_monkeypatch \
+	watchpoint
 
 define SIMPLE_PROG_RULE # (1 = progname)
 $(1): $(1).c
