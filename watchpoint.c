@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <pthread.h>
 #include <signal.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -13,6 +14,7 @@
 #define fatal(_msg, ...)                                                \
     do {                                                                \
         fprintf(stderr, "Fatal error: " _msg "\n", ## __VA_ARGS__);     \
+        exit(1);                                                        \
     } while (0)
 
 #define USER_WORD_DR(x) offsetof(struct user, u_debugreg[x])
@@ -60,9 +62,19 @@ write_mut(int x)
     mut = x;
 }
 
+static void*
+thread(void* unused)
+{
+    read_mut();
+    write_mut(24);
+    return NULL;
+}
+
 static void
 child(void)
 {
+    pthread_t t;
+
     if (ptrace(PTRACE_TRACEME, 0, 0, 0)) {
         fatal("TRACEME in child");
     }
@@ -71,8 +83,8 @@ child(void)
     read_mut();
     write_mut(42);
 
-    read_mut();
-    write_mut(24);
+    pthread_create(&t, NULL, thread, NULL);
+    pthread_join(t, NULL);
 
     exit(0);
 }
@@ -104,6 +116,7 @@ main(void)
     struct user_regs_struct regs;
     void* ip;
     pid_t c = fork();
+    pid_t t;
     if (0 == c) {
         child();
     }
@@ -111,24 +124,39 @@ main(void)
     ret = waitpid(c, &status, 0);
     assert(c == ret && WIFSTOPPED(status) && SIGSTOP == WSTOPSIG(status));
 
+    ptrace(PTRACE_SETOPTIONS, c, NULL, PTRACE_O_TRACECLONE);
+
     watch(c, &mut, TRAP_WRITE, BYTES_4);
     ptrace(PTRACE_CONT, c, NULL, NULL);
 
-    ret = waitpid(c, &status, 0);
+    ret = waitpid(-1, &status, __WALL);
+    printf("task %d stopped with status %#x\n", ret, status);
     assert(c == ret && WIFSTOPPED(status) && SIGTRAP == WSTOPSIG(status));
     ptrace(PTRACE_GETREGS, c, 0, &regs);
     ip = (void*)regs.eip;
-    printf("hit write watchpoint at %p\n", ip);
+    printf(" -> hit write watchpoint at %p\n", ip);
     assert(read_mut_fn < write_mut_fn && write_mut_fn <= ip);
 
-    watch(c, &mut, TRAP_READWRITE, BYTES_4);
     ptrace(PTRACE_CONT, c, NULL, NULL);
+    ret = waitpid(-1, &status, __WALL);
+    printf("task %d stopped with status %#x\n", ret, status);
+    assert(c == ret && 0x3057f == status/*PTRACE_EVENT_CLONE*/);
+    ptrace(PTRACE_GETEVENTMSG, c, NULL, &t);
 
-    ret = waitpid(c, &status, 0);
-    assert(c == ret && WIFSTOPPED(status) && SIGTRAP == WSTOPSIG(status));
-    ptrace(PTRACE_GETREGS, c, 0, &regs);
+    ret = waitpid(t, &status, __WALL);
+    printf("task %d stopped with status %#x\n", ret, status);
+
+    watch(c, &mut, TRAP_READWRITE, BYTES_4);
+    watch(t, &mut, TRAP_READWRITE, BYTES_4);
+    ptrace(PTRACE_CONT, c, NULL, NULL);
+    ptrace(PTRACE_CONT, t, NULL, NULL);
+
+    ret = waitpid(-1, &status, __WALL);
+    printf("task %d stopped with status %#x\n", ret, status);
+    assert(t == ret && WIFSTOPPED(status) && SIGTRAP == WSTOPSIG(status));
+    ptrace(PTRACE_GETREGS, t, 0, &regs);
     ip = (void*)regs.eip;
-    printf("hit read/write watchpoint at %p\n", ip);
+    printf(" -> hit read/write watchpoint at %p\n", ip);
     assert(read_mut_fn <= ip && read_mut_fn < write_mut_fn);
 
     return 0;
