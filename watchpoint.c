@@ -124,10 +124,11 @@ main(void)
     ret = waitpid(c, &status, 0);
     assert(c == ret && WIFSTOPPED(status) && SIGSTOP == WSTOPSIG(status));
 
-    ptrace(PTRACE_SETOPTIONS, c, NULL, PTRACE_O_TRACECLONE);
+    ptrace(PTRACE_SETOPTIONS, c, NULL,
+           PTRACE_O_TRACECLONE | PTRACE_O_TRACESYSGOOD);
 
     watch(c, &mut, TRAP_WRITE, BYTES_4);
-    ptrace(PTRACE_CONT, c, NULL, NULL);
+    ptrace(PTRACE_SYSCALL, c, NULL, NULL);
 
     ret = waitpid(-1, &status, __WALL);
     printf("task %d stopped with status %#x\n", ret, status);

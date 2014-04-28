@@ -9,7 +9,7 @@ RR ?= "$(OBJDIR)/bin/rr"
 SUNSPIDER ?= $(HOME)/src/SunSpider
 
 # Current testing build made from gecko-dev git sha1
-# 1c376e56533ab62cad819fca2d7db023a674e438, hg commit ???
+# 876943a61001e8ccf48ce6cfb9cd0724100b0bb8, hg commit ???
 FF_SRCDIR = $(abspath ../mozilla-central)
 #FF_OBJDIR = $(abspath ../ff-dbg)
 FF_OBJDIR = $(abspath ../ff-prof)
@@ -25,6 +25,7 @@ RECORD ?= -fm record -b
 REPLAY ?= -fm replay --autopilot
 
 DBG ?= --debugger=$(RR) --debugger-args='$(RECORD)' --slowscript
+DBG_RFTST ?= --debugger=$(RR) --debugger-args='$(RECORD)'
 
 TRACE ?=
 
@@ -185,7 +186,7 @@ help::
 
 record-crashtest:
 	make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG_RFTST)" \
 		$(TEST_PATH_ARG) \
 		crashtest
 
@@ -198,7 +199,7 @@ help::
 
 record-crashtest-ipc:
 	make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG_RFTST)" \
 		$(TEST_PATH_ARG) \
 		crashtest-ipc
 
@@ -211,7 +212,7 @@ help::
 
 record-reftest:
 	make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG_RFTST)" \
 		$(TEST_PATH_ARG) \
 		reftest
 
@@ -224,7 +225,7 @@ help::
 
 record-reftest-ipc:
 	make -C $(FF_OBJDIR) \
-		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG)" \
+		EXTRA_TEST_ARGS="--log-file=$(TEST_LOG) $(DBG_RFTST)" \
 		$(TEST_PATH_ARG) \
 		reftest-ipc
 
