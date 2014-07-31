@@ -9,10 +9,11 @@ RR ?= "$(OBJDIR)/bin/rr"
 SUNSPIDER ?= $(HOME)/src/SunSpider
 
 # Current testing build made from gecko-dev git sha1
-# 876943a61001e8ccf48ce6cfb9cd0724100b0bb8, hg commit ???
+# e7567904cc0f161f1042d22333d690fd1f346896, hg commit ???
 FF_SRCDIR = $(abspath ../mozilla-central)
 #FF_OBJDIR = $(abspath ../ff-dbg)
-FF_OBJDIR = $(abspath ../ff-prof)
+#FF_OBJDIR = $(abspath ../ff-prof)
+FF_OBJDIR = $(abspath ../ff-gcv)
 XRE_PATH ?= $(FF_OBJDIR)/dist/bin
 
 FF ?= "$(XRE_PATH)/firefox"
@@ -299,6 +300,7 @@ SIMPLE_PROGS = \
 	lcmp \
 	status2text \
 	strfutexcmd \
+	sysemu \
 	vdso_monkeypatch \
 	watchpoint
 

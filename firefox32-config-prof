@@ -24,10 +24,10 @@ ac_add_options --enable-profiling
 #ac_add_options --enable-crashreporter
 
 # Flags set for targeting x86.
-#export CROSS_COMPILE=1
-#export PKG_CONFIG_PATH=/usr/lib/pkgconfig
+export CROSS_COMPILE=1
+export PKG_CONFIG_PATH=/usr/lib/pkgconfig
 
-#export CC="ccache $CC -m32"
-#export CXX="ccache $CXX -m32"
-#AR=ar
-#ac_add_options --target=i686-pc-linux
+export CC="gcc -m32"
+export CXX="g++ -m32"
+AR=ar
+ac_add_options --target=i686-pc-linux

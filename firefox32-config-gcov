@@ -1,19 +1,7 @@
-# Flags for instrumenting FF build with exe path logging.
-#CC=clang
-#CXX=clang++
-
-#CFLAGS="-O1 -Xclang -load -Xclang ${HOME}/rr/workbench/PathLogging.so"
-#CXXFLAGS="-O1 -Xclang -load -Xclang ${HOME}/rr/workbench/PathLogging.so"
-#LDFLAGS="-Wl,-rpath -Wl,${HOME}/rr/workbench -L ${HOME}/rr/workbench -lpathlogging"
-
-#HOST_CFLAGS="-O1"
-#HOST_CXXFLAGS="-O1"
-
-
-# Normal build flags.  These make a prof browser build.
+# Normal build flags.  These make a gcov browser build.
 ac_add_options --enable-application=browser
 mk_add_options MOZ_MAKE_FLAGS="-s -j10"
-mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/../ff-dbg
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/../ff-gcv
 
 ac_add_options --disable-gstreamer
 
@@ -30,5 +18,8 @@ export PKG_CONFIG_PATH=/usr/lib/pkgconfig
 
 export CC="gcc -m32"
 export CXX="g++ -m32"
+export COMPILE_CFLAGS="-fprofile-arcs -ftest-coverage"
+export COMPILE_CXXFLAGS="-fprofile-arcs -ftest-coverage"
+export LDFLAGS="-Wl,--whole-archive -lgcov -Wl,--no-whole-archive"
 AR=ar
 ac_add_options --target=i686-pc-linux
